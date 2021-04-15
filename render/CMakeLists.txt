@@ -1,12 +1,7 @@
-cmake_minimum_required(VERSION 3.2)#версия с-make
+cmake_minimum_required(VERSION 3.1)
 project(RenderSystem CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-
-option(ENABLE_COVERAGE "Enable coverage reporting for gcc/clang" FALSE)
-if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-	add_compile_options(-O0 -g --coverage)
-endif()
 
 if(MSVC)
 	add_compile_options(/W4)
@@ -21,8 +16,10 @@ add_library(RenderSystem SHARED ${RenderSystemFiles})
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glad/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/glad/include/)
 
+set(OpenGL_GL_PREFERENCE "LEGACY")
+
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
 include_directories(${OpenGL_INCLUDE_DIRS})
 
-target_link_libraries(RenderSystem ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} glad --coverage)
+target_link_libraries(RenderSystem ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} glad)
