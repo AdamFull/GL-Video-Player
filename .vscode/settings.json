@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "renderlogging.h": "c",
+        "xutility": "cpp",
+        "xstring": "cpp",
+        "filesystem": "cpp"
+    }
+}
