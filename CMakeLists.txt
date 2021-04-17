@@ -6,8 +6,8 @@ enable_testing()
 
 add_executable(GL-VIDEO-PLAYER main.cpp)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/render/)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/video-decoding/)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/render-system/)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/video-decoding-system/)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

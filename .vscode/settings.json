@@ -3,6 +3,8 @@
         "renderlogging.h": "c",
         "xutility": "cpp",
         "xstring": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "atomic": "cpp",
+        "fstream": "cpp"
     }
 }
