@@ -6,7 +6,7 @@ int main(int, char**)
     VideoFile vfile;
     vfile.open("../videoplayback.mp4");
 
-    GLRender renderer(vfile);
+    GLRender renderer(&vfile);
     renderer.initialize("../shaders/");
     renderer.display();
 

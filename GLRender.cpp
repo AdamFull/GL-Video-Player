@@ -28,11 +28,12 @@ GLRender::GLRender()
 {
 }
 
-GLRender::GLRender(VideoFile vf)
+GLRender::GLRender(VideoFile* vf)
 {
     vfile = vf;
-    width = vfile.get_width();
-    height = vfile.get_height();
+    aplayer = new ALPlayer();
+    width = vfile->GetVideoStream()->get_width();
+    height = vfile->GetVideoStream()->get_height();
 }
 
 /*****************************************************************************************/
@@ -167,7 +168,7 @@ bool GLRender::initialize(std::string shaderFolderPath)
 void GLRender::display()
 {
     bool first_frame = true;
-
+    glfwSetTime(0.0);
     while(is_running())
     {
         frameStart();
@@ -176,22 +177,28 @@ void GLRender::display()
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        vfile.read_frame();
+        vfile->read_frame();
 
         if (first_frame) 
         {
-            glfwSetTime(0.0);
+            
             first_frame = false;
         }
         
-        double pt_in_seconds = vfile.get_seconds();
+        double pt_in_seconds = vfile->GetVideoStream()->get_seconds();
         while (pt_in_seconds > glfwGetTime()) 
         {
             glfwWaitEventsTimeout(pt_in_seconds - glfwGetTime());
         }
 
         glBindTexture(GL_TEXTURE_2D, tex_handle);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, vfile.get_frame());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, vfile->GetVideoStream()->get_frame());
+
+        if(vfile->GetAudioStream()->is_decoded())
+        {
+            aplayer->play(vfile->GetAudioStream());
+            vfile->GetAudioStream()->set_decoded(false);
+        }
 
         glUseProgram(shaderLoader.getProgram());
         glBindVertexArray(VAO);

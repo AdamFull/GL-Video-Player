@@ -1,29 +1,21 @@
 #include "VideoFile.hpp"
 
-static AVPixelFormat correct_for_deprecated_pixel_format(AVPixelFormat pix_fmt)
-{
-    // Fix swscaler deprecated pixel format warning
-    // (YUVJ has been deprecated, change pixel format to regular YUV)
-    switch (pix_fmt)
-    {
-    case AV_PIX_FMT_YUVJ420P:
-        return AV_PIX_FMT_YUV420P;
-    case AV_PIX_FMT_YUVJ422P:
-        return AV_PIX_FMT_YUV422P;
-    case AV_PIX_FMT_YUVJ444P:
-        return AV_PIX_FMT_YUV444P;
-    case AV_PIX_FMT_YUVJ440P:
-        return AV_PIX_FMT_YUV440P;
-    default:
-        return pix_fmt;
-    }
-}
-
 VideoFile::VideoFile()
 {
+    vstream = new VideoStream();
+    astream = new AudioStream();
 }
 
-bool VideoFile::open(std::string filepath)
+VideoFile::~VideoFile()
+{
+    avformat_close_input(&av_format_ctx);
+    avformat_free_context(av_format_ctx);
+    av_packet_free(&av_packet);
+    delete vstream;
+    delete astream;
+}
+
+bool VideoFile::open(std::string filename)
 {
     av_format_ctx = avformat_alloc_context();
     if (!av_format_ctx)
@@ -32,68 +24,21 @@ bool VideoFile::open(std::string filepath)
         return false;
     }
 
-    if (avformat_open_input(&av_format_ctx, filepath.c_str(), NULL, NULL) != 0)
+    if (avformat_open_input(&av_format_ctx, filename.c_str(), NULL, NULL) != 0)
     {
         printf("Couldn't open video file\n");
         return false;
     }
 
-    // Find the first valid video stream inside the file
-    video_stream_index = -1;
-    AVCodecParameters *av_codec_params;
-    AVCodec *av_codec;
-    for (int i = 0; i < av_format_ctx->nb_streams; ++i)
+    if(!vstream->open(av_format_ctx))
     {
-        av_codec_params = av_format_ctx->streams[i]->codecpar;
-        av_codec = avcodec_find_decoder(av_codec_params->codec_id);
-        if (!av_codec)
-        {
-            continue;
-        }
-        if (av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO)
-        {
-            video_stream_index = i;
-            width = av_codec_params->width;
-            height = av_codec_params->height;
-            time_base = av_format_ctx->streams[i]->time_base;
-            break;
-        }
-        else if(av_codec_params->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-        {
-
-        }
-    }
-
-    if (video_stream_index == -1)
-    {
-        printf("Couldn't find valid video stream inside file\n");
+        printf("Couldn't open video stream\n");
         return false;
     }
 
-    // Set up a codec context for the decoder
-    av_codec_ctx = avcodec_alloc_context3(av_codec);
-    if (!av_codec_ctx)
+    if(!astream->open(av_format_ctx))
     {
-        printf("Couldn't create AVCodecContext\n");
-        return false;
-    }
-
-    if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0)
-    {
-        printf("Couldn't initialize AVCodecContext\n");
-        return false;
-    }
-
-    if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0)
-    {
-        printf("Couldn't open codec\n");
-        return false;
-    }
-
-    av_frame = av_frame_alloc();
-    if (!av_frame)
-    {
-        printf("Couldn't allocate AVFrame\n");
+        printf("Couldn't open audio stream\n");
         return false;
     }
 
@@ -101,12 +46,6 @@ bool VideoFile::open(std::string filepath)
     if (!av_packet)
     {
         printf("Couldn't allocate AVPacket\n");
-        return false;
-    }
-
-    if (posix_memalign((void**)&frame_buffer, 128, width * height * 4) != 0) 
-    {
-        printf("Couldn't allocate frame buffer\n");
         return false;
     }
 
@@ -118,75 +57,27 @@ bool VideoFile::read_frame()
     int response;
     while (av_read_frame(av_format_ctx, av_packet) >= 0)
     {
-        if (av_packet->stream_index != video_stream_index)
+        if (av_packet->stream_index == vstream->get_stream_index())
+        {
+            if(!vstream->decode(av_format_ctx, av_packet))
+            {
+                av_packet_unref(av_packet);
+                continue;
+            }
+        }
+        else if(av_packet->stream_index == astream->get_stream_index())
+        {
+            if(!astream->decode(av_format_ctx, av_packet))
+            {
+                av_packet_unref(av_packet);
+                continue;
+            }
+        }
+        else
         {
             av_packet_unref(av_packet);
             continue;
         }
-
-        response = avcodec_send_packet(av_codec_ctx, av_packet);
-        if (response < 0)
-            ;
-
-        response = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
-        else if (response < 0);
-
-        av_packet_unref(av_packet);
-        break;
-    }
-    av_packet->s
-
-    pts = av_frame->pts;
-
-    // Set up sws scaler
-    if (!sws_scaler_ctx)
-    {
-        auto source_pix_fmt = correct_for_deprecated_pixel_format(av_codec_ctx->pix_fmt);
-        sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
-                                        width, height, AV_PIX_FMT_RGB0,
-                                        SWS_BILINEAR, NULL, NULL, NULL);
-    }
-
-    if (!sws_scaler_ctx)
-        ;
-
-    uint8_t *dest[4] = {frame_buffer, NULL, NULL, NULL};
-    int dest_linesize[4] = {width * 4, 0, 0, 0};
-    sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dest, dest_linesize);
-
-    return true;
-}
-
-bool VideoFile::seek_frame(int64_t ts)
-{
-    av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD);
-
-    int response;
-    while (av_read_frame(av_format_ctx, av_packet) >= 0)
-    {
-        if (av_packet->stream_index != video_stream_index)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
-
-        response = avcodec_send_packet(av_codec_ctx, av_packet);
-        if (response < 0)
-            ;
-
-        response = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
-        else if (response < 0)
-            ;
 
         av_packet_unref(av_packet);
         break;
@@ -195,12 +86,14 @@ bool VideoFile::seek_frame(int64_t ts)
     return true;
 }
 
-bool VideoFile::close()
+bool VideoFile::seek_frame()
 {
-    sws_freeContext(sws_scaler_ctx);
-    avformat_close_input(&av_format_ctx);
-    avformat_free_context(av_format_ctx);
-    av_frame_free(&av_frame);
-    av_packet_free(&av_packet);
-    avcodec_free_context(&av_codec_ctx);
+    /*int seek_target = vstream-> + (_seek_seconds / av_q2d(av_format_ctx->streams[vstream->get_stream_index()]->time_base));
+
+    seek_target = std::max(seek_target, 0);
+
+    av_free_packet(av_packet);
+    av_freep(av_packet);
+
+    av_seek_frame(av_format_ctx, vstream->get_stream_index(), seek_target, AVSEEK_FLAG_BACKWARD);*/
 }

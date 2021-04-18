@@ -7,6 +7,7 @@
 
 #include "ShaderLoader.hpp"
 #include "VideoFile.hpp"
+#include "ALPlayer.hpp"
 #include <GLFW/glfw3.h>
 
 #include <chrono>
@@ -24,7 +25,7 @@ typedef struct{
 class GLRender{
 public:
     GLRender();
-    GLRender(VideoFile vf);
+    GLRender(VideoFile* vf);
     GLRender(int sWidth, int sHeight);
     GLRender(int sWidth, int sHeight, GLKeyboardCallback GL_Keyboard_Callback,
             GLMouseCallback GL_Mouse_Callback, GLMouseButtonCallback GL_Mouse_Button_Callback);
@@ -67,7 +68,8 @@ private:
 //Callbacks
 private:
     GLInputCallbacks glInputCallbacks;
-    VideoFile vfile;
+    VideoFile* vfile;
+    ALPlayer* aplayer;
 };
 
 
