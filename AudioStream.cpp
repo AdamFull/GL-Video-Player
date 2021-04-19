@@ -10,19 +10,9 @@ bool AudioStream::open(AVFormatContext* av_format_ctx)
     audio_stream_index = -1;
     AVCodecParameters *av_codec_params;
     AVCodec *av_codec;
-    for (int i = 0; i < av_format_ctx->nb_streams; ++i)
-    {
-        av_codec_params = av_format_ctx->streams[i]->codecpar;
-        av_codec = avcodec_find_decoder(av_codec_params->codec_id);
-        if (!av_codec)
-            continue;
-        if(av_format_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-        {
-            audio_stream_index = i;
-            time_base = av_format_ctx->streams[i]->time_base;
-            break;
-        }
-    }
+    audio_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, &av_codec, 0);
+    av_codec_params = av_format_ctx->streams[audio_stream_index]->codecpar;
+    time_base = av_format_ctx->streams[audio_stream_index]->time_base;
 
     if (audio_stream_index == -1)
     {

@@ -1,12 +1,14 @@
 #pragma once
 
-extern "C" {
+extern "C" 
+{
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <inttypes.h>
 }
 
+#include "HWDecoder.hpp"
 #include <string>
 #include <vector>
 
@@ -28,6 +30,7 @@ public:
     uint8_t* get_frame() { return frame_buffer; }
 
 private:
+    HWDecoder hwdecoder;
     size_t width, height;
     AVRational time_base;
 

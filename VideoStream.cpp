@@ -26,27 +26,38 @@ VideoStream::VideoStream()
     avcodec_free_context(&av_codec_ctx);
 }
 
+AVCodec* find_decoder()
+{
+    std::vector<std::string> vdecoders = {"h264_vda", "h264_vdpau", "h264_vaapi", "h264_cuvid"};
+    AVCodec *av_codec;
+
+    AVHWDeviceType devType = AV_HWDEVICE_TYPE_VDPAU;// = av_hwdevice_find_type_by_name("vdpau");
+    while((devType = av_hwdevice_iterate_types(devType)) != AV_HWDEVICE_TYPE_NONE)
+            fprintf(stderr, " %s", av_hwdevice_get_type_name(devType));
+
+    for(std::string sdecoder : vdecoders)
+    {
+        av_codec = avcodec_find_decoder_by_name(sdecoder.c_str());
+        if(av_codec)
+        {
+            printf("Couldn't find supported hwaccel video codec on device.\n");
+            return av_codec;
+        }
+    }
+    return nullptr;
+}
+
 bool VideoStream::open(AVFormatContext* av_format_ctx)
 {
     // Find the first valid video stream inside the file
     video_stream_index = -1;
     AVCodecParameters *av_codec_params;
     AVCodec *av_codec;
-    for (int i = 0; i < av_format_ctx->nb_streams; ++i)
-    {
-        av_codec_params = av_format_ctx->streams[i]->codecpar;
-        av_codec = avcodec_find_decoder(av_codec_params->codec_id);
-        if (!av_codec)
-            continue;
-        if (av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO)
-        {
-            video_stream_index = i;
-            width = av_codec_params->width;
-            height = av_codec_params->height;
-            time_base = av_format_ctx->streams[i]->time_base;
-            break;
-        }
-    }
+    video_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, &av_codec, 0);
+    av_codec_params = av_format_ctx->streams[video_stream_index]->codecpar;
+    width = av_codec_params->width;
+    height = av_codec_params->height;
+    time_base = av_format_ctx->streams[video_stream_index]->time_base;
 
     if (video_stream_index == -1)
     {
@@ -54,24 +65,28 @@ bool VideoStream::open(AVFormatContext* av_format_ctx)
         return false;
     }
 
-    // Set up a codec context for the decoder
-    av_codec_ctx = avcodec_alloc_context3(av_codec);
-    if (!av_codec_ctx)
+    if(!hwdecoder.initialize(av_codec, &av_codec_ctx, av_codec_params))
     {
-        printf("Couldn't create AVCodecContext\n");
-        return false;
-    }
+            // Set up a codec context for the decoder
+        av_codec_ctx = avcodec_alloc_context3(av_codec);
+        if (!av_codec_ctx)
+        {
+            printf("Couldn't create AVCodecContext\n");
+            return false;
+        }
+        
 
-    if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0)
-    {
-        printf("Couldn't initialize AVCodecContext\n");
-        return false;
-    }
+        if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0)
+        {
+            printf("Couldn't initialize AVCodecContext\n");
+            return false;
+        }
 
-    if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0)
-    {
-        printf("Couldn't open codec\n");
-        return false;
+        if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0)
+        {
+            printf("Couldn't open codec\n");
+            return false;
+        }
     }
 
     av_frame = av_frame_alloc();
@@ -115,12 +130,20 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
         return false;
     }
 
+    if(hwdecoder.is_initialized())
+    {
+        if(!hwdecoder.decode(av_packet, &av_frame))
+        {
+            printf("Failed while decoding frame on gpu.\n");
+        }
+    }
+
     pts = av_frame->pts;
 
     // Set up sws scaler
     if (!sws_scaler_ctx)
     {
-        auto source_pix_fmt = correct_for_deprecated_pixel_format(av_codec_ctx->pix_fmt);
+        auto source_pix_fmt = correct_for_deprecated_pixel_format((AVPixelFormat)av_frame->format);
         sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
                                         width, height, AV_PIX_FMT_RGB0,
                                         SWS_BILINEAR, NULL, NULL, NULL);
