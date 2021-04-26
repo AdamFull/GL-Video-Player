@@ -27,7 +27,8 @@ HWDecoder::~HWDecoder()
 
 bool HWDecoder::initialize(AVCodec *av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters *av_codec_params)
 {
-    AVHWDeviceType devType = av_hwdevice_find_type_by_name("vdpau");
+    //vaapi|vdpau|dxva2|d3d11va
+    AVHWDeviceType devType = av_hwdevice_find_type_by_name("d3d11va");
 
     for (int i = 0;; i++)
     {
@@ -109,9 +110,10 @@ bool HWDecoder::decode(AVPacket* av_packet, AVFrame** av_frame)
         if ((ret = av_hwframe_transfer_data(sw_frame, *av_frame, 0)) < 0)
         {
             fprintf(stderr, "Error transferring the data to system memory\n");
+            av_frame_free(&sw_frame);
             return false;
         }
-
+        
         sw_frame->pict_type = (*av_frame)->pict_type;
         sw_frame->pts = (*av_frame)->pts;
         sw_frame->pkt_pts = (*av_frame)->pkt_pts;
