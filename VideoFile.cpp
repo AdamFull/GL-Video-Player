@@ -33,13 +33,11 @@ bool VideoFile::open(std::string filename)
     if(!vstream->open(av_format_ctx))
     {
         printf("Couldn't open video stream\n");
-        return false;
     }
 
     if(!astream->open(av_format_ctx))
     {
         printf("Couldn't open audio stream\n");
-        return false;
     }
 
     av_packet = av_packet_alloc();
@@ -64,6 +62,7 @@ bool VideoFile::read_frame()
                 av_packet_unref(av_packet);
                 continue;
             }
+            video_fr++;
         }
         else if(av_packet->stream_index == astream->get_stream_index())
         {
@@ -72,6 +71,7 @@ bool VideoFile::read_frame()
                 av_packet_unref(av_packet);
                 continue;
             }
+            audio_fr++;
         }
         else
         {
@@ -96,4 +96,5 @@ bool VideoFile::seek_frame()
     av_freep(av_packet);
 
     av_seek_frame(av_format_ctx, vstream->get_stream_index(), seek_target, AVSEEK_FLAG_BACKWARD);*/
+    return false;
 }

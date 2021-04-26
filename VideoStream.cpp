@@ -1,5 +1,9 @@
 #include "VideoStream.hpp"
 
+#ifdef _WIN32
+    #define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ?0 :errno)
+#endif
+
 static AVPixelFormat correct_for_deprecated_pixel_format(AVPixelFormat pix_fmt)
 {
     // Fix swscaler deprecated pixel format warning
@@ -54,16 +58,17 @@ bool VideoStream::open(AVFormatContext* av_format_ctx)
     AVCodecParameters *av_codec_params;
     AVCodec *av_codec;
     video_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, &av_codec, 0);
-    av_codec_params = av_format_ctx->streams[video_stream_index]->codecpar;
-    width = av_codec_params->width;
-    height = av_codec_params->height;
-    time_base = av_format_ctx->streams[video_stream_index]->time_base;
 
     if (video_stream_index == -1)
     {
         printf("Couldn't find valid video stream inside file\n");
         return false;
     }
+
+    av_codec_params = av_format_ctx->streams[video_stream_index]->codecpar;
+    width = av_codec_params->width;
+    height = av_codec_params->height;
+    time_base = av_format_ctx->streams[video_stream_index]->time_base;
 
     if(!hwdecoder.initialize(av_codec, &av_codec_ctx, av_codec_params))
     {

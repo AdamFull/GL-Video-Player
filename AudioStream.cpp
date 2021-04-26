@@ -11,14 +11,15 @@ bool AudioStream::open(AVFormatContext* av_format_ctx)
     AVCodecParameters *av_codec_params;
     AVCodec *av_codec;
     audio_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, &av_codec, 0);
-    av_codec_params = av_format_ctx->streams[audio_stream_index]->codecpar;
-    time_base = av_format_ctx->streams[audio_stream_index]->time_base;
 
-    if (audio_stream_index == -1)
+    if (audio_stream_index < 0)
     {
         printf("Couldn't find valid audio stream inside file\n");
         return false;
     }
+
+    av_codec_params = av_format_ctx->streams[audio_stream_index]->codecpar;
+    time_base = av_format_ctx->streams[audio_stream_index]->time_base;
 
     av_codec_ctx = avcodec_alloc_context3(av_codec);
     if (!av_codec_ctx)
@@ -62,7 +63,9 @@ bool AudioStream::open(AVFormatContext* av_format_ctx)
 
 bool AudioStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
 {
-    int response;
+    int response, gotFrame = 0;
+
+    //response = avcodec_decode_audio4(av_codec_ctx, av_frame, &gotFrame, av_packet);
     
     response = avcodec_send_packet(av_codec_ctx, av_packet);
     if (response < 0)

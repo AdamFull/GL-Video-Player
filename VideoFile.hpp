@@ -22,6 +22,7 @@ private:
     AVPacket* av_packet = NULL;
     int _seek_seconds = 0;
 
+    int audio_fr = 0, video_fr = 0;
     VideoStream* vstream;
     AudioStream* astream;
 };
