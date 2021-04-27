@@ -1,4 +1,5 @@
 #include "HWDecoder.hpp"
+#include <libswscale/swscale.h>
 
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)
 {
@@ -16,6 +17,7 @@ enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixe
 
 HWDecoder::HWDecoder(/* args */)
 {
+    hw_pix_fmt_supported = AV_PIX_FMT_NONE;
 }
 
 HWDecoder::~HWDecoder()
@@ -69,6 +71,7 @@ bool HWDecoder::initialize(AVCodec *av_codec, AVCodecContext** av_codec_ctx, AVC
         fprintf(stderr, "Failed to create specified HW device.\n");
         return false;
     }
+
     (*av_codec_ctx)->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
     if (avcodec_open2(*av_codec_ctx, av_codec, NULL) < 0)

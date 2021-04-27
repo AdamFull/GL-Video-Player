@@ -129,22 +129,22 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
     if (response < 0)
     {
         printf("Couldn't send video frame to decoder.\n");
+        print_error(response);
         av_packet_unref(av_packet);
         return false;
     }
 
-    response = avcodec_receive_frame(av_codec_ctx, av_frame);
-    if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+    do
     {
-        print_error(response);
-        av_packet_unref(av_packet);
-        return false;
+        response = avcodec_receive_frame(av_codec_ctx, av_frame);
+        if(response == AVERROR_EOF) break;
+        else if(response < 0)
+        {
+            print_error(response);
+            return false;
+        }
     }
-    else if (response < 0)
-    {
-        print_error(response);
-        return false;
-    }
+    while(response == AVERROR(EAGAIN));
 
     if(hwdecoder.is_initialized())
     {
