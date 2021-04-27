@@ -1,7 +1,5 @@
 #include "HWDecoder.hpp"
 
-static enum AVPixelFormat hw_pix_fmt;
-
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)
 {
     const enum AVPixelFormat *p;
@@ -27,8 +25,8 @@ HWDecoder::~HWDecoder()
 
 bool HWDecoder::initialize(AVCodec *av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters *av_codec_params)
 {
-    //vaapi|vdpau|dxva2|d3d11va
-    AVHWDeviceType devType = av_hwdevice_find_type_by_name("d3d11va");
+    //vaapi|vdpau|dxva2|d3d11va|qvs|vdpau|vaapi|videotoolbox|drm|opencl|mediacodec|vulkan
+    AVHWDeviceType devType = av_hwdevice_find_type_by_name("dxva2");
 
     for (int i = 0;; i++)
     {
@@ -46,6 +44,8 @@ bool HWDecoder::initialize(AVCodec *av_codec, AVCodecContext** av_codec_ctx, AVC
             break;
         }
     }
+
+    hw_device_ctx = av_hwdevice_ctx_alloc(devType);
 
     *av_codec_ctx = avcodec_alloc_context3(av_codec);
     if (!av_codec_ctx)
@@ -129,6 +129,7 @@ bool HWDecoder::decode(AVPacket* av_packet, AVFrame** av_frame)
         sw_frame->chroma_location = (*av_frame)->chroma_location;
         sw_frame->best_effort_timestamp = (*av_frame)->best_effort_timestamp;
         av_frame_ref(*av_frame, sw_frame);
+        av_frame_unref(sw_frame);
         return true;
     }
     return false;

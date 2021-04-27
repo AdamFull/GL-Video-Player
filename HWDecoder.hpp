@@ -6,6 +6,8 @@ extern "C"
 #include <libavformat/avformat.h>
 }
 
+static enum AVPixelFormat hw_pix_fmt;
+
 class HWDecoder
 {
 private:

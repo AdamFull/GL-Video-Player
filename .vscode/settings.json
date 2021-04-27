@@ -63,6 +63,6 @@
         "typeinfo": "cpp"
     },
     "cmake.configureSettings": {
-        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "E:\\libraries\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
       }
 }
