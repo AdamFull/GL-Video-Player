@@ -1,4 +1,6 @@
 #include "VideoStream.hpp"
+#include <iostream>
+#include <libavutil/error.h>
 
 #ifdef _WIN32
     #define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ?0 :errno)
@@ -21,6 +23,14 @@ static AVPixelFormat correct_for_deprecated_pixel_format(AVPixelFormat pix_fmt)
     default:
         return pix_fmt;
     }
+}
+
+void print_error(int errcode)
+{
+    std::string serror;
+    serror.resize(64);
+    av_make_error_string(serror.data(), 64, errcode);
+    std::cout << serror << std::endl;
 }
 
 VideoStream::VideoStream()
@@ -125,13 +135,13 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
     response = avcodec_receive_frame(av_codec_ctx, av_frame);
     if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
     {
-        printf("Couldn't receive video frame from decoder. End of file or eagain.\n");
+        print_error(response);
         av_packet_unref(av_packet);
         return false;
     }
     else if (response < 0)
     {
-        printf("Couldn't receive video frame from decoder.\n");
+        print_error(response);
         return false;
     }
 

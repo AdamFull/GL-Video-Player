@@ -52,8 +52,8 @@ bool VideoFile::open(std::string filename)
 
 bool VideoFile::read_frame()
 {
-    int response;
-    while (av_read_frame(av_format_ctx, av_packet) >= 0)
+    int response = av_read_frame(av_format_ctx, av_packet);
+    while (response >= 0)
     {
         if (av_packet->stream_index == vstream->get_stream_index())
         {
@@ -83,6 +83,9 @@ bool VideoFile::read_frame()
         av_packet_unref(av_packet);
         break;
     }
+
+    if(response < 0)
+        return false;
 
     return true;
 }
