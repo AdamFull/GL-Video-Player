@@ -72,6 +72,7 @@ bool VideoStream::open(AVFormatContext* av_format_ctx)
     if (video_stream_index == -1)
     {
         printf("Couldn't find valid video stream inside file\n");
+        print_error(video_stream_index);
         return false;
     }
 

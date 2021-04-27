@@ -12,6 +12,8 @@ extern "C"
 #include <string>
 #include <vector>
 
+void print_error(int errcode);
+
 class VideoStream
 {
 public:
