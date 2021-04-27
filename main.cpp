@@ -5,7 +5,7 @@ int main(int, char**)
 {
     VideoFile vfile;
     #ifdef _WIN32
-    vfile.open("../../videoplayback.mp4");
+    vfile.open("../../videoplayback1.mp4");
     #else
     vfile.open("../videoplayback.mp4");
     #endif
