@@ -2,6 +2,18 @@
 #include <libswscale/swscale.h>
 #include "memory_helper.h"
 
+#if defined(WIN32)
+#define HW_DECODER_NAME "d3d11va"
+#elif defined(LINUX)
+#define HW_DECODER_NAME "vdpau"
+#elif defined(OSX)
+#define HW_DECODER_NAME "vdpau"
+#elif defined(ANDROID)
+#define HW_DECODER_NAME "mediacodec"
+#elif defined(IOS)
+#define HW_DECODER_NAME "videotoolbox"
+#endif
+
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)
 {
     const enum AVPixelFormat *p;
@@ -29,7 +41,7 @@ HWDecoder::~HWDecoder()
 bool HWDecoder::initialize(AVCodec *av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters *av_codec_params)
 {
     //vaapi|vdpau|cuvid|dxva2|d3d11va|qvs|videotoolbox|drm|opencl|mediacodec|vulkan
-    AVHWDeviceType devType = av_hwdevice_find_type_by_name("vdpau");
+    AVHWDeviceType devType = av_hwdevice_find_type_by_name(HW_DECODER_NAME);
 
     for (int i = 0;; i++)
     {
