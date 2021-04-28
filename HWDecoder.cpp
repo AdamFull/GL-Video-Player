@@ -1,5 +1,6 @@
 #include "HWDecoder.hpp"
 #include <libswscale/swscale.h>
+#include "memory_helper.h"
 
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)
 {
@@ -27,8 +28,8 @@ HWDecoder::~HWDecoder()
 
 bool HWDecoder::initialize(AVCodec *av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters *av_codec_params)
 {
-    //vaapi|vdpau|dxva2|d3d11va|qvs|vdpau|vaapi|videotoolbox|drm|opencl|mediacodec|vulkan
-    AVHWDeviceType devType = av_hwdevice_find_type_by_name("dxva2");
+    //vaapi|vdpau|cuvid|dxva2|d3d11va|qvs|videotoolbox|drm|opencl|mediacodec|vulkan
+    AVHWDeviceType devType = av_hwdevice_find_type_by_name("vdpau");
 
     for (int i = 0;; i++)
     {
@@ -89,24 +90,7 @@ bool HWDecoder::decode(AVPacket* av_packet, AVFrame** av_frame)
 {
     int ret = 0;
 
-    if(sw_frame)
-    {
-        //reallocating frame
-        av_frame_free(&sw_frame);
-        if (!(sw_frame = av_frame_alloc()))
-        {
-            fprintf(stderr, "Can not alloc frame\n");
-            return false;
-        }
-    }
-    else
-    {
-        if (!(sw_frame = av_frame_alloc()))
-        {
-            fprintf(stderr, "Can not alloc frame\n");
-            return false;
-        }
-    }
+    realloc_frame(&sw_frame);
 
     if ((*av_frame)->format == hw_pix_fmt)
     {

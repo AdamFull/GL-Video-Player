@@ -1,5 +1,6 @@
 #include "VideoStream.hpp"
 #include <iostream>
+#include "memory_helper.h"
 #include <libavutil/error.h>
 
 #ifdef _WIN32
@@ -35,30 +36,23 @@ void print_error(int errcode)
 
 VideoStream::VideoStream()
 {
+    width = 0;
+    height = 0;
+
+    frame_buffer = NULL;
+    pts = 0;
+
+    video_stream_index = -1;
+    av_codec_ctx = NULL;
+    av_frame = NULL;
+    sws_scaler_ctx = NULL;
+}
+
+VideoStream::~VideoStream()
+{
     sws_freeContext(sws_scaler_ctx);
     av_frame_free(&av_frame);
     avcodec_free_context(&av_codec_ctx);
-}
-
-AVCodec* find_decoder()
-{
-    std::vector<std::string> vdecoders = {"h264_vda", "h264_vdpau", "h264_vaapi", "h264_cuvid"};
-    AVCodec *av_codec;
-
-    AVHWDeviceType devType = AV_HWDEVICE_TYPE_VDPAU;// = av_hwdevice_find_type_by_name("vdpau");
-    while((devType = av_hwdevice_iterate_types(devType)) != AV_HWDEVICE_TYPE_NONE)
-            fprintf(stderr, " %s", av_hwdevice_get_type_name(devType));
-
-    for(std::string sdecoder : vdecoders)
-    {
-        av_codec = avcodec_find_decoder_by_name(sdecoder.c_str());
-        if(av_codec)
-        {
-            printf("Couldn't find supported hwaccel video codec on device.\n");
-            return av_codec;
-        }
-    }
-    return nullptr;
 }
 
 bool VideoStream::open(AVFormatContext* av_format_ctx)
@@ -105,14 +99,7 @@ bool VideoStream::open(AVFormatContext* av_format_ctx)
         }
     }
 
-    av_frame = av_frame_alloc();
-    if (!av_frame)
-    {
-        printf("Couldn't allocate AVFrame\n");
-        return false;
-    }
-
-    if (posix_memalign((void**)&frame_buffer, 128, width * height * 4) != 0) 
+    if (posix_memalign((void**)&frame_buffer, 32, width * height * 4) != 0) 
     {
         printf("Couldn't allocate frame buffer\n");
         return false;
@@ -130,21 +117,22 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
     {
         printf("Couldn't send video frame to decoder.\n");
         print_error(response);
-        av_packet_unref(av_packet);
         return false;
     }
 
-    do
+    realloc_frame(&av_frame);
+
+    response = avcodec_receive_frame(av_codec_ctx, av_frame);
+    if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
     {
-        response = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if(response == AVERROR_EOF) break;
-        else if(response < 0)
-        {
-            print_error(response);
-            return false;
-        }
+        av_frame_free(&av_frame);
+        return false;
     }
-    while(response == AVERROR(EAGAIN));
+    else if (response < 0)
+    {
+        print_error(response);
+        return false;
+    }
 
     if(hwdecoder.is_initialized())
     {
@@ -160,9 +148,10 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
     if (!sws_scaler_ctx)
     {
         auto source_pix_fmt = correct_for_deprecated_pixel_format((AVPixelFormat)av_frame->format);
+        //Send here frame params
         sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
                                         width, height, AV_PIX_FMT_RGB0,
-                                        SWS_BILINEAR, NULL, NULL, NULL);
+                                        SWS_BICUBIC, NULL, NULL, NULL);
     }
 
     if (!sws_scaler_ctx)

@@ -7,7 +7,7 @@ int main(int, char**)
     #ifdef _WIN32
     vfile.open("../../videoplayback1.mp4");
     #else
-    vfile.open("../videoplayback.mp4");
+    vfile.open("../videoplayback1.mp4");
     #endif
 
     GLRender renderer(&vfile);

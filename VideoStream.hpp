@@ -18,6 +18,7 @@ class VideoStream
 {
 public:
     VideoStream();
+    ~VideoStream();
 
     bool open(AVFormatContext* av_format_ctx);
     bool decode(AVFormatContext* av_format_ctx, AVPacket* av_packet);
@@ -36,11 +37,11 @@ private:
     size_t width, height;
     AVRational time_base;
 
-    uint8_t *frame_buffer = NULL;
-    int64_t pts = 0;
+    uint8_t *frame_buffer;
+    int64_t pts;
 
     int video_stream_index;
-    AVCodecContext* av_codec_ctx = NULL;
-    AVFrame* av_frame = NULL;
-    SwsContext* sws_scaler_ctx = NULL;
+    AVCodecContext* av_codec_ctx;
+    AVFrame* av_frame;
+    SwsContext* sws_scaler_ctx;
 };

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 include(CTest)
 enable_testing()
 
-file(GLOB CPP_FILES *.cpp *.c *.hpp)
+file(GLOB CPP_FILES *.cpp *.c *.hpp *.h)
 add_executable(GL-VIDEO-PLAYER ${CPP_FILES})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glad/)

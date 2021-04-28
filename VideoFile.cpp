@@ -66,7 +66,6 @@ bool VideoFile::read_frame()
         }
         else if(av_packet->stream_index == astream->get_stream_index())
         {
-            continue;
             if(!astream->decode(av_format_ctx, av_packet))
             {
                 av_packet_unref(av_packet);
