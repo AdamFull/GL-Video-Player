@@ -12,15 +12,17 @@
 
 #include <chrono>
 
-typedef void(*GLKeyboardCallback)(GLFWwindow* window, int key, int scancode, int action, int mods);
-typedef void(*GLMouseCallback)(GLFWwindow* window, double xpos, double ypos);
-typedef void(*GLMouseButtonCallback)(GLFWwindow* window, int button, int action, int mods);
+using GLKeyboardCallback = void(*)(GLFWwindow* window, int key, int scancode, int action, int mods);
+using GLMouseCallback = void(*)(GLFWwindow* window, double xpos, double ypos);
+using GLMouseButtonCallback = void(*)(GLFWwindow* window, int button, int action, int mods);
 
-typedef struct{
+using GLInputCallbacks = 
+struct
+{
     GLKeyboardCallback glKbCb;
     GLMouseCallback glMCb;
     GLMouseButtonCallback glMbCb;
-}GLInputCallbacks;
+};
 
 class GLRender{
 public:

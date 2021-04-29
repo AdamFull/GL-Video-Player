@@ -20,31 +20,35 @@ find_package(OpenAL REQUIRED)
 include_directories(${OpenGL_INCLUDE_DIRS})
 include_directories(${OpenAL_INCLUDE_DIRS})
 
-if (WIN32)
-    find_library(AVDEVICE_LIBRARY avdevice REQUIRED)
-    find_library(AVFILTER_LIBRARY avfilter REQUIRED)
-    find_library(AVFORMAT_LIBRARY avformat REQUIRED)
-    find_library(AVCODEC_LIBRARY avcodec REQUIRED)
-    find_library(AVUTIL_LIBRARY avutil REQUIRED)
-    find_library(ASWRESAMPLE_LIBRARY swresample REQUIRED)
-    find_library(SWSCALE_LIBRARY swscale REQUIRED)
-else()
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
-        libavdevice
-        libavfilter
-        libavformat
-        libavcodec
-        libswresample
-        libswscale
-        libavutil
-    )
+if(ANDROID)
+find_library( log-lib log )
 endif()
 
-if (WIN32)
-    target_link_libraries(GL-VIDEO-PLAYER ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} ${OPENAL_LIBRARY} glad 
-                        ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY}
-                        ${AVFILTER_LIBRARY} ${ASWRESAMPLE_LIBRARY} ${SWSCALE_LIBRARY})
+find_library(AVDEVICE_LIBRARY avdevice REQUIRED)
+find_library(AVFILTER_LIBRARY avfilter REQUIRED)
+find_library(AVFORMAT_LIBRARY avformat REQUIRED)
+find_library(AVCODEC_LIBRARY avcodec REQUIRED)
+find_library(AVUTIL_LIBRARY avutil REQUIRED)
+find_library(ASWRESAMPLE_LIBRARY swresample REQUIRED)
+find_library(SWSCALE_LIBRARY swscale REQUIRED)
+
+set(FFMPEG_LIBRARIES
+        ${AVCODEC_LIBRARY}
+        ${AVFORMAT_LIBRARY}
+        ${AVUTIL_LIBRARY}
+        ${AVDEVICE_LIBRARY}
+        ${AVFILTER_LIBRARY}
+        ${ASWRESAMPLE_LIBRARY}
+        ${SWSCALE_LIBRARY})
+
+set(SHARED_LIBRARIES_FOR_OS ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} ${OPENAL_LIBRARY} glad)
+
+if(ANDROID)
+    set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS} ${FFMPEG_LIBRARIES} ${log-lib})
+elseif(IOS)
+    set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS} ${FFMPEG_LIBRARIES})
 else()
-    target_link_libraries(GL-VIDEO-PLAYER ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} ${OPENAL_LIBRARY} glad PkgConfig::LIBAV) 
+    set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS} ${FFMPEG_LIBRARIES})
 endif()
+
+target_link_libraries(GL-VIDEO-PLAYER ${PROJECT_LIBRARIES})
