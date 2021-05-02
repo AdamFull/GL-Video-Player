@@ -2,16 +2,22 @@
 #include <libswscale/swscale.h>
 #include "memory_helper.h"
 
-#if defined(WIN32)
+#if defined(_WIN32)
 #define HW_DECODER_NAME "d3d11va"
-#elif defined(LINUX)
+#elif defined(__linux__)
 #define HW_DECODER_NAME "vdpau"
-#elif defined(OSX)
-#define HW_DECODER_NAME "vdpau"
-#elif defined(ANDROID)
+#elif defined(__APPLE__)
+    #if TARGET_IPHONE_SIMULATOR
+        #define HW_DECODER_NAME "videotoolbox"
+    #elif TARGET_OS_IPHONE
+        #define HW_DECODER_NAME "videotoolbox"
+    #elif TARGET_OS_MAC
+        #define HW_DECODER_NAME "vdpau"
+    #else
+    #   error "Unknown Apple platform"
+    #endif
+#elif defined(__ANDROID__)
 #define HW_DECODER_NAME "mediacodec"
-#elif defined(IOS)
-#define HW_DECODER_NAME "videotoolbox"
 #endif
 
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)

@@ -6,8 +6,8 @@
 #define GLEW_STATIC
 
 #include "ShaderLoader.hpp"
-#include "VideoFile.hpp"
-#include "ALPlayer.hpp"
+#include "VideoEncDec/VideoFile.hpp"
+#include "AudioPlayer/ALPlayer.hpp"
 #include <GLFW/glfw3.h>
 
 #include <chrono>

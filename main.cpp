@@ -1,5 +1,5 @@
 #include <iostream>
-#include "GLRender.hpp"
+#include "VideoRender/GLRender.hpp"
 
 int main(int, char**) 
 {

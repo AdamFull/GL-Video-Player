@@ -3,10 +3,6 @@
 #include "memory_helper.h"
 #include <libavutil/error.h>
 
-#ifdef _WIN32
-    #define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ?0 :errno)
-#endif
-
 static AVPixelFormat correct_for_deprecated_pixel_format(AVPixelFormat pix_fmt)
 {
     // Fix swscaler deprecated pixel format warning
