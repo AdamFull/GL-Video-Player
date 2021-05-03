@@ -1,42 +1,13 @@
 #include "HWDecoder.hpp"
 #include <libswscale/swscale.h>
 #include "memory_helper.h"
+#include "decoder_helper.h"
 
-#if defined(_WIN32)
-#define HW_DECODER_NAME "d3d11va"
-#elif defined(__linux__)
-#define HW_DECODER_NAME "vdpau"
-#elif defined(__APPLE__)
-    #if TARGET_IPHONE_SIMULATOR
-        #define HW_DECODER_NAME "videotoolbox"
-    #elif TARGET_OS_IPHONE
-        #define HW_DECODER_NAME "videotoolbox"
-    #elif TARGET_OS_MAC
-        #define HW_DECODER_NAME "vdpau"
-    #else
-    #   error "Unknown Apple platform"
-    #endif
-#elif defined(__ANDROID__)
-#define HW_DECODER_NAME "mediacodec"
-#endif
-
-enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)
-{
-    const enum AVPixelFormat *p;
-
-    for (p = pix_fmts; *p != -1; p++)
-    {
-        if (*p == hw_pix_fmt)
-            return *p;
-    }
-
-    fprintf(stderr, "Failed to get HW surface format.\n");
-    return AV_PIX_FMT_NONE;
-}
+extern enum AVPixelFormat hw_pix_fmt;
 
 HWDecoder::HWDecoder(/* args */)
 {
-    hw_pix_fmt_supported = AV_PIX_FMT_NONE;
+    
 }
 
 HWDecoder::~HWDecoder()

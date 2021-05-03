@@ -6,9 +6,9 @@
 #define GLEW_STATIC
 
 #include "ShaderLoader.hpp"
-#include "VideoEncDec/VideoFile.hpp"
-#include "AudioPlayer/ALPlayer.hpp"
+#include "GRenderObject.hpp"
 #include <GLFW/glfw3.h>
+#include <queue>
 
 #include <chrono>
 
@@ -27,7 +27,6 @@ struct
 class GLRender{
 public:
     GLRender();
-    GLRender(VideoFile* vf);
     GLRender(int sWidth, int sHeight);
     GLRender(int sWidth, int sHeight, GLKeyboardCallback GL_Keyboard_Callback,
             GLMouseCallback GL_Mouse_Callback, GLMouseButtonCallback GL_Mouse_Button_Callback);
@@ -36,6 +35,11 @@ public:
 
     void screen_size(int width, int height);
     void add_shader_folder_path(std::string newPath) { shaderLoader.addShaderFolder(newPath); }
+
+    void add(std::shared_ptr<GRenderObject> robj);
+
+    void create_texture();
+    GLuint get_texture() { return tex_handle; }
 
     bool initialize();
     bool initialize(std::string shaderFolderPath);
@@ -47,12 +51,16 @@ public:
 
     double get_frame_time() { return frameTime; }
 
+    double frameStart();
+    double frameStop();
+
 /**********************************GL private variables**************************************/
 private:
     GLFWwindow* window;
     GLuint VBO, VAO, EBO;
     GLuint tex_handle;
     ShaderLoader shaderLoader;
+    std::queue<std::shared_ptr<GRenderObject>> objects_to_render;
 
 /**********************************Emulator variables**************************************/
 private:
@@ -63,15 +71,9 @@ private:
     std::chrono::steady_clock::time_point prvTime;
     std::chrono::steady_clock::time_point curTime;
 
-private:
-    void frameStart();
-    void frameStop();
-
 //Callbacks
 private:
     GLInputCallbacks glInputCallbacks;
-    VideoFile* vfile;
-    ALPlayer* aplayer;
 };
 
 

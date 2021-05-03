@@ -1,0 +1,3 @@
+[submodule "VideoRender/freetype"]
+	path = VideoRender/freetype
+	url = https://github.com/freetype/freetype.git

@@ -5,6 +5,10 @@
 #include <cstring>
 #include <iostream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 static GLRender *pData;
 
 /*****************************************************************************************/
@@ -28,25 +32,19 @@ GLRender::GLRender()
 {
 }
 
-GLRender::GLRender(VideoFile* vf)
-{
-    vfile = vf;
-    aplayer = new ALPlayer();
-    width = vfile->GetVideoStream()->get_width();
-    height = vfile->GetVideoStream()->get_height();
-}
-
 /*****************************************************************************************/
 GLRender::GLRender(int sWidth, int sHeight)
 {
+    width = sWidth;
+    height = sHeight;
 }
 
 /*****************************************************************************************/
 GLRender::GLRender(int sWidth, int sHeight, GLKeyboardCallback GL_Keyboard_Callback,
                  GLMouseCallback GL_Mouse_Callback, GLMouseButtonCallback GL_Mouse_Button_Callback)
 {
-    pixelCounter = 0;
-
+    width = sWidth;
+    height = sHeight;
     glInputCallbacks.glKbCb = GL_Keyboard_Callback;
     glInputCallbacks.glMCb = GL_Mouse_Callback;
     glInputCallbacks.glMbCb = GL_Mouse_Button_Callback;
@@ -55,6 +53,8 @@ GLRender::GLRender(int sWidth, int sHeight, GLKeyboardCallback GL_Keyboard_Callb
 /*****************************************************************************************/
 GLRender::GLRender(int sWidth, int sHeight, GLInputCallbacks *glInputCallbacks)
 {
+    width = sWidth;
+    height = sHeight;
     this->glInputCallbacks = *glInputCallbacks;
 }
 
@@ -114,13 +114,8 @@ bool GLRender::initialize(std::string shaderFolderPath)
     shaderLoader.addShaderFolder(shaderFolderPath);
     shaderLoader.loadShaders();
 
-    glGenTextures(1, &tex_handle);
-    glBindTexture(GL_TEXTURE_2D, tex_handle);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), 0.0f, static_cast<float>(height));
+    glUniformMatrix4fv(glGetUniformLocation(shaderLoader.getProgram(), "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
     float vertices[] = {
         // positions          // colors           // texture coords
@@ -164,51 +159,38 @@ bool GLRender::initialize(std::string shaderFolderPath)
     return true;
 }
 
+void GLRender::create_texture()
+{
+    glGenTextures(1, &tex_handle);
+    glBindTexture(GL_TEXTURE_2D, tex_handle);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+}
+
+void GLRender::add(std::shared_ptr<GRenderObject> robj)
+{
+    objects_to_render.emplace(robj);
+}
+
 /*****************************************************************************************/
 void GLRender::display()
 {
-    bool first_frame = true;
-    glfwSetTime(0.0);
-    while(is_running())
+    process_input_callback(window);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    while (!objects_to_render.empty())
     {
-        frameStart();
-
-        process_input_callback(window);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        vfile->read_frame();
-
-        if (first_frame) 
-        {
-            
-            first_frame = false;
-        }
-        
-        double pt_in_seconds = vfile->GetVideoStream()->get_seconds();
-        while (pt_in_seconds > glfwGetTime()) 
-        {
-            glfwWaitEventsTimeout(pt_in_seconds - glfwGetTime());
-        }
-
-        glBindTexture(GL_TEXTURE_2D, tex_handle);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, vfile->GetVideoStream()->get_frame());
-
-        if(vfile->GetAudioStream()->is_decoded())
-        {
-            aplayer->play(vfile->GetAudioStream());
-            vfile->GetAudioStream()->set_decoded(false);
-        }
-
-        glUseProgram(shaderLoader.getProgram());
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-
-        frameStop();
+        std::shared_ptr<GRenderObject> obj = objects_to_render.front();
+        obj->render(shaderLoader.getProgram(), VAO, VBO);
+        objects_to_render.pop();
     }
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 }
 
 /*****************************************************************************************/
@@ -226,16 +208,18 @@ bool GLRender::is_running()
 }
 
 /*****************************************************************************************/
-void GLRender::frameStart()
+double GLRender::frameStart()
 {
     prvTime = std::chrono::steady_clock::now();
     curTime = std::chrono::steady_clock::now();
     prvTime = curTime;
+    return 0.0;
 }
 
 /*****************************************************************************************/
-void GLRender::frameStop()
+double GLRender::frameStop()
 {
     curTime = std::chrono::steady_clock::now();
     frameTime = std::chrono::duration<double>(curTime - prvTime).count();
+    return frameTime;
 }

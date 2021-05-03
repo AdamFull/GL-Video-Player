@@ -6,8 +6,6 @@ extern "C"
 #include <libavformat/avformat.h>
 }
 
-static enum AVPixelFormat hw_pix_fmt;
-
 class HWDecoder
 {
 private:
@@ -25,6 +23,5 @@ private:
     AVFrame*            sw_frame = NULL;
     AVCodecHWConfig*    hw_codec_config;
     AVBufferRef*        hw_device_ctx;
-    AVPixelFormat       hw_pix_fmt_supported;
     bool                b_is_initialized = false;
 };

@@ -4,7 +4,7 @@
 #include <AL/alc.h>
 //#include <AL/alut.h>
 
-#include "VideoEncDec/AudioStream.hpp"
+#include "../VideoEncDec/AudioStream.hpp"
 #include <string>
 
 class ALPlayer

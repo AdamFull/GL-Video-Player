@@ -19,7 +19,3 @@ set(FFMPEG_LIBRARIES
         ${SWSCALE_LIBRARY})
 
 target_link_libraries(VIDEO_ENCODER_DECODER ${FFMPEG_LIBRARIES})
-
-target_include_directories(VIDEO_ENCODER_DECODER PUBLIC
-${CMAKE_CURRENT_SOURCE_DIR}/../
-)

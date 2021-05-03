@@ -1,26 +1,8 @@
 #include "VideoStream.hpp"
 #include <iostream>
 #include "memory_helper.h"
+#include "decoder_helper.h"
 #include <libavutil/error.h>
-
-static AVPixelFormat correct_for_deprecated_pixel_format(AVPixelFormat pix_fmt)
-{
-    // Fix swscaler deprecated pixel format warning
-    // (YUVJ has been deprecated, change pixel format to regular YUV)
-    switch (pix_fmt)
-    {
-    case AV_PIX_FMT_YUVJ420P:
-        return AV_PIX_FMT_YUV420P;
-    case AV_PIX_FMT_YUVJ422P:
-        return AV_PIX_FMT_YUV422P;
-    case AV_PIX_FMT_YUVJ444P:
-        return AV_PIX_FMT_YUV444P;
-    case AV_PIX_FMT_YUVJ440P:
-        return AV_PIX_FMT_YUV440P;
-    default:
-        return pix_fmt;
-    }
-}
 
 void print_error(int errcode)
 {
