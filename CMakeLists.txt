@@ -9,7 +9,7 @@ enable_testing()
 file(GLOB CPP_FILES *.cpp *.c *.hpp *.h)
 add_executable(GL-VIDEO-PLAYER ${CPP_FILES})
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/AudioPlayer/)
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/AudioPlayer/) AL_PLAYER
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoEncDec/)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoRender/)
 
@@ -17,7 +17,7 @@ if(ANDROID)
 find_library( log-lib log )
 endif()
 
-set(SHARED_LIBRARIES_FOR_OS AL_PLAYER VIDEO_ENCODER_DECODER GL_RENDER)
+set(SHARED_LIBRARIES_FOR_OS VIDEO_ENCODER_DECODER GL_RENDER)
 
 if(ANDROID)
     set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS} ${log-lib})
@@ -29,4 +29,4 @@ else()
     set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS})
 endif()
 
-target_link_libraries(GL-VIDEO-PLAYER ${PROJECT_LIBRARIES})
+target_link_libraries(GL-VIDEO-PLAYER PRIVATE ${PROJECT_LIBRARIES})

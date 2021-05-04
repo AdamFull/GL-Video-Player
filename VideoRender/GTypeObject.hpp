@@ -20,9 +20,9 @@ public:
 
     ~GTypeObject() {}
 
-    void render(GLuint shader, GLuint VAO, GLuint VBO = 0) override
+    void render(GShader shader) override
     {
-        glUseProgram(shader);
+        /*glUseProgram(shader);
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(VAO);
 
@@ -57,7 +57,7 @@ public:
             x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
         }
         glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);*/
     }
 
 private:

@@ -10,20 +10,13 @@ extern "C"{
 
 #if defined(_WIN32)
     #define HW_DECODER_NAME "d3d11va"
-    #include <libavcodec/d3d11va.h>
-    #include <libavcodec/dxva2.h>
-    #include <libavcodec/qsv.h>
 #elif defined(__linux__)
     #define HW_DECODER_NAME "cuda"
-    #include <libavcodec/vaapi.h>
-    #include <libavcodec/vdpau.h>
 #elif defined(__APPLE__)
     #if TARGET_IPHONE_SIMULATOR
         #define HW_DECODER_NAME "videotoolbox"
-        #include <libavcodec/videotoolbox.h>
     #elif TARGET_OS_IPHONE
         #define HW_DECODER_NAME "videotoolbox"
-        #include <libavcodec/videotoolbox.h>
     #elif TARGET_OS_MAC
         #define HW_DECODER_NAME "vdpau"
     #else
@@ -31,9 +24,9 @@ extern "C"{
     #endif
 #elif defined(__ANDROID__)
     #define HW_DECODER_NAME "mediacodec"
-    #include <libavcodec/mediacodec.h>
 #endif
 
+static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts);
 enum AVPixelFormat correct_for_deprecated_pixel_format(enum AVPixelFormat pix_fmt);
 

@@ -4,7 +4,7 @@
 #include "VideoRender/GSprite.hpp"
 #include "VideoRender/GTypeObject.hpp"
 #include "VideoEncDec/VideoFile.hpp"
-#include "AudioPlayer/ALPlayer.hpp"
+//#include "AudioPlayer/ALPlayer.hpp"
 
 bool is_file_not_end = true;
 double fps = 0.0;
@@ -18,7 +18,7 @@ int main(int, char**)
     vfile.open("../resources/samples/videoplayback1.mp4");
     #endif
 
-    ALPlayer* aplayer = new ALPlayer();
+    //ALPlayer* aplayer = new ALPlayer();
 
     VideoStream* vstream = vfile.GetVideoStream();
     GLRender renderer(vstream->get_width(), vstream->get_height());
@@ -31,8 +31,6 @@ int main(int, char**)
     renderer.initialize("../resources/shaders/");
     typeMgr.load("../resources/fonts/OpenSans-Bold.ttf"); 
     #endif
-
-    renderer.create_texture();
 
     std::shared_ptr<GSprite> movie_screen = std::make_shared<GSprite>();
     GTexture2D movie_texture;
@@ -56,7 +54,7 @@ int main(int, char**)
 
         if(vfile.GetAudioStream()->is_decoded())
         {
-            aplayer->play(vfile.GetAudioStream());
+            //aplayer->play(vfile.GetAudioStream());
             vfile.GetAudioStream()->set_decoded(false);
         }
 

@@ -1,5 +1,5 @@
 file(GLOB GL_RENDER_FILES *.cpp *.hpp)
-add_library(GL_RENDER STATIC ${GL_RENDER_FILES})
+add_library(GL_RENDER SHARED ${GL_RENDER_FILES})
 
 set(OpenGL_GL_PREFERENCE "LEGACY")
 
