@@ -9,7 +9,7 @@ extern "C"{
 #define OLD_DECODER_FORMAT
 
 #if defined(_WIN32)
-    #define HW_DECODER_NAME "none"
+    #define HW_DECODER_NAME "cuda"
 #elif defined(__linux__)
     #define HW_DECODER_NAME "cuda"
 #elif defined(__APPLE__)
@@ -26,7 +26,7 @@ extern "C"{
     #define HW_DECODER_NAME "mediacodec"
 #endif
 
-//enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts);
+enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts);
 enum AVPixelFormat correct_for_deprecated_pixel_format(enum AVPixelFormat pix_fmt);
 
 #ifdef __cplusplus

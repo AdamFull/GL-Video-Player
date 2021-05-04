@@ -14,8 +14,9 @@ void print_error(int errcode)
 
 VideoStream::VideoStream()
 {
-    width = 0;
-    height = 0;
+    width = to_width = 0;
+    height = to_height = 0;
+    needs_reinit_scaler = false;
 
     frame_buffer = NULL;
     pts = 0;
@@ -30,7 +31,10 @@ VideoStream::~VideoStream()
 {
     sws_freeContext(sws_scaler_ctx);
     av_frame_free(&av_frame);
+    av_frame_free(&sc_frame);
     avcodec_free_context(&av_codec_ctx);
+    av_free(frame_buffer);
+    //std::free(frame_buffer);
 }
 
 bool VideoStream::open(AVFormatContext* av_format_ctx)
@@ -77,13 +81,37 @@ bool VideoStream::open(AVFormatContext* av_format_ctx)
         }
     }
 
-    if (posix_memalign((void**)&frame_buffer, 32, width * height * 4) != 0) 
+    if (!(sc_frame = av_frame_alloc()))
     {
-        printf("Couldn't allocate frame buffer\n");
+        fprintf(stderr, "Can not alloc frame\n");
         return false;
     }
 
+    /*frame_buffer = (uint8_t*)std::aligned_alloc(32, width * height * 4);
+    if (!frame_buffer) 
+    {
+        printf("Couldn't allocate frame buffer\n");
+        return false;
+    }*/
+
     return true;
+}
+
+void VideoStream::set_rescale_size(int nwidth, int nheight)
+{
+    if(nwidth != to_width && nheight != to_height)
+    {
+        to_width = nwidth;
+        to_height = nheight;
+        needs_reinit_scaler = true;
+
+        /*if (frame_buffer)
+            std::free(frame_buffer);
+
+        frame_buffer = (uint8_t*)std::aligned_alloc(32, width * height * 4);
+        if (!frame_buffer) 
+            printf("Couldn't allocate frame buffer\n");*/
+    }
 }
 
 bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
@@ -123,13 +151,24 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
     pts = av_frame->pts;
 
     // Set up sws scaler
-    if (!sws_scaler_ctx)
+    if (!sws_scaler_ctx || needs_reinit_scaler)
     {
+        if(needs_reinit_scaler && sws_scaler_ctx)
+            sws_freeContext(sws_scaler_ctx);
+
         auto source_pix_fmt = correct_for_deprecated_pixel_format((AVPixelFormat)av_frame->format);
         //Send here frame params
+        //BEST QUALITY/PERFOMANCE: SWS_BICUBLIN, SWS_AREA
         sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
-                                        width, height, AV_PIX_FMT_RGB0,
-                                        SWS_BICUBIC, NULL, NULL, NULL);
+                                        to_width, to_height, AV_PIX_FMT_RGB0,
+                                        SWS_BICUBLIN, NULL, NULL, NULL);
+
+        if(needs_reinit_scaler && frame_buffer)
+            av_free(frame_buffer);
+
+        int num_bytes = avpicture_get_size(AV_PIX_FMT_RGB0, to_width, to_height);
+        frame_buffer = (uint8_t *)av_malloc(num_bytes*sizeof(uint8_t));
+        needs_reinit_scaler = false;
     }
 
     if (!sws_scaler_ctx)
@@ -138,9 +177,8 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
         return false;
     }
 
-    uint8_t *dest[4] = {frame_buffer, NULL, NULL, NULL};
-    int dest_linesize[4] = {width * 4, 0, 0, 0};
-    sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dest, dest_linesize);
+    avpicture_fill((AVPicture*)sc_frame, frame_buffer, AV_PIX_FMT_RGB0, to_width, to_height);
+    sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, height, sc_frame->data, sc_frame->linesize);
 
     return true;
 }

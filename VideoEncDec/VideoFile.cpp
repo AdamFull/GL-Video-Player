@@ -2,6 +2,7 @@
 
 VideoFile::VideoFile()
 {
+    av_register_all();
     vstream = new VideoStream();
     astream = new AudioStream();
 }

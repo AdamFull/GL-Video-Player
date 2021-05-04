@@ -11,13 +11,18 @@ add_executable(GL-VIDEO-PLAYER ${CPP_FILES})
 
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/AudioPlayer/) AL_PLAYER
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoEncDec/)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoRender/)
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoRender/) GL_RENDER
+
+find_package(SFML COMPONENTS graphics audio REQUIRED)
 
 if(ANDROID)
 find_library( log-lib log )
 endif()
 
-set(SHARED_LIBRARIES_FOR_OS VIDEO_ENCODER_DECODER GL_RENDER)
+# find_library(Stb REQUIRED)
+# include_directories(${Stb_INCLUDE_DIRS})
+
+set(SHARED_LIBRARIES_FOR_OS VIDEO_ENCODER_DECODER sfml-graphics sfml-audio)
 
 if(ANDROID)
     set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS} ${log-lib})

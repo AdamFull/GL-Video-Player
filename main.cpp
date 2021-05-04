@@ -1,70 +1,99 @@
-#include <iostream>
-#include "VideoRender/GLRender.hpp"
-#include "VideoRender/GTexture2D.hpp"
-#include "VideoRender/GSprite.hpp"
-//#include "VideoRender/GTypeObject.hpp"
+#include <SFML/Audio.hpp>
+#include <SFML/Graphics.hpp>
 #include "VideoEncDec/VideoFile.hpp"
-//#include "AudioPlayer/ALPlayer.hpp"
 
-
-std::shared_ptr<GSprite> movie_screen;
-std::shared_ptr<GTexture2D> movie_texture;
+#define AVG_BUFFER_SIZE 10
 bool is_file_not_end = true;
-double fps = 0.0;
+float lastTime = 0;
+float fps = 0, fps_max = 0, fps_min = 0, fps_avg = 0;
+float avg_fps_buffer[AVG_BUFFER_SIZE] = {0};
+int avg_buffer_counter = 0;
 
-int main(int, char**) 
+int main()
 {
     VideoFile vfile;
     #ifdef _WIN32
     vfile.open("../../resources/samples/videoplayback1.mp4");
     #else
-    vfile.open("../resources/samples/videoplayback1.mp4");
+    vfile.open("../resources/samples/videoplayback3.mp4");
     #endif
-
-    //ALPlayer* aplayer = new ALPlayer();
 
     VideoStream* vstream = vfile.GetVideoStream();
-    GLRender renderer(vstream->get_width(), vstream->get_height());
-    //TypeManager typeMgr;
 
-    #ifdef _WIN32
-    renderer.initialize("../../resources/shaders/");
-    //typeMgr.load("../../resources/fonts/OpenSans-Bold.ttf"); 
-    #else
-    renderer.initialize("../resources/shaders/");
-    //typeMgr.load("../resources/fonts/OpenSans-Bold.ttf"); 
-    #endif
+    sf::RenderWindow window(sf::VideoMode(vstream->get_width(), vstream->get_height()), "Video Player");
+    window.setVerticalSyncEnabled(true);
+    //vstream->set_rescale_size(sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height);
 
-    movie_screen = std::make_shared<GSprite>();
-    movie_screen->init();
-    movie_texture = std::make_shared<GTexture2D>();
-    movie_texture->init();
+    sf::Font font;
+    font.loadFromFile("../resources/fonts/OpenSans-Bold.ttf");
+    sf::Text cur_fps, max_fps, min_fps;
+    cur_fps.setFont(font);
+    max_fps.setFont(font);
+    max_fps.setPosition(0, 40);
+    min_fps.setFont(font);
+    min_fps.setPosition(0, 80);
 
-    glfwSetTime(0.0);
+    sf::Texture texture;
+    sf::Sprite sprite;
+    sf::Clock clock;
+    sf::Clock video_timer;
+
+    video_timer.restart();
+    texture.create(vstream->get_width(), vstream->get_width());
     while(is_file_not_end)
     {
-        renderer.frameStart();
-        is_file_not_end = vfile.read_frame();
+        if(fps > fps_max)
+            fps_max = fps;
+        else if(fps < fps_min)
+            fps_min = fps;
+
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            // Close window: exit
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+
         double pt_in_seconds = vfile.GetVideoStream()->get_seconds();
-        while (pt_in_seconds > glfwGetTime()) 
+        while (pt_in_seconds > video_timer.getElapsedTime().asSeconds());
+
+        sf::Vector2u wind_size = window.getSize();
+        vstream->set_rescale_size(wind_size.x, wind_size.y);
+        
+        window.clear();
+        is_file_not_end = vfile.read_frame();
+
+        texture.update(vstream->get_frame(), wind_size.x, wind_size.y, 0, 0);
+        sprite.setTexture(texture);
+        cur_fps.setString("AVG: " + std::to_string(fps_avg));
+        max_fps.setString("MAX: " + std::to_string(fps_max));
+        min_fps.setString("MIN: " + std::to_string(fps_min));
+
+        window.draw(sprite);
+        window.draw(cur_fps);
+        window.draw(max_fps);
+        window.draw(min_fps);
+        window.display();
+
+        fps = 1.f / clock.restart().asSeconds();
+        if(fps_min < 1) 
+            fps_min = fps;
+
+        if(avg_buffer_counter < AVG_BUFFER_SIZE)
         {
-            glfwWaitEventsTimeout(pt_in_seconds - glfwGetTime());
+            avg_fps_buffer[avg_buffer_counter] = fps;
+            avg_buffer_counter++;
         }
-
-        movie_texture->load(vstream->get_width(), vstream->get_height(), vstream->get_frame());
-        movie_screen->update(movie_texture, glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.f);
-        renderer.add(movie_screen);
-        //renderer.add(std::make_shared<GTypeObject>(&typeMgr, std::to_string(fps), 10, 20, 1));
-        renderer.display();
-
-        if(vfile.GetAudioStream()->is_decoded())
+        else
         {
-            //aplayer->play(vfile.GetAudioStream());
-            vfile.GetAudioStream()->set_decoded(false);
-        }
+            fps_avg = 0;
+            for(int i = 0; i < AVG_BUFFER_SIZE; i++)
+                fps_avg+=fps/AVG_BUFFER_SIZE;
 
-        fps = 1.0/renderer.frameStop();
+            avg_buffer_counter = 0;
+        }
     }
 
-    return 0;
+    window.close();
 }
