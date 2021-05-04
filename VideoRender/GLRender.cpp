@@ -115,7 +115,7 @@ bool GLRender::initialize(std::string shaderFolderPath)
     shaderLoader.loadShaders();
 
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), 0.0f, static_cast<float>(height));
-    glUniformMatrix4fv(glGetUniformLocation(shaderLoader.getProgram(), "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    shaderLoader.getShader("default").SetMatrix4("projection", projection);
 
     float vertices[] = {
         // positions          // colors           // texture coords
@@ -159,17 +159,6 @@ bool GLRender::initialize(std::string shaderFolderPath)
     return true;
 }
 
-void GLRender::create_texture()
-{
-    glGenTextures(1, &tex_handle);
-    glBindTexture(GL_TEXTURE_2D, tex_handle);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-}
-
 void GLRender::add(std::shared_ptr<GRenderObject> robj)
 {
     objects_to_render.emplace(robj);
@@ -185,7 +174,7 @@ void GLRender::display()
     while (!objects_to_render.empty())
     {
         std::shared_ptr<GRenderObject> obj = objects_to_render.front();
-        obj->render(shaderLoader.getProgram(), VAO, VBO);
+        obj->render(shaderLoader.getShader("default"));
         objects_to_render.pop();
     }
 

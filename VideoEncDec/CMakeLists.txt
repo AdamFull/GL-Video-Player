@@ -1,21 +1,34 @@
 file(GLOB VIDEO_ENCODER_DECODER_FILES *.cpp *.c)
 add_library(VIDEO_ENCODER_DECODER SHARED ${VIDEO_ENCODER_DECODER_FILES})
 
-find_library(AVDEVICE_LIBRARY avdevice REQUIRED)
-find_library(AVFILTER_LIBRARY avfilter REQUIRED)
-find_library(AVFORMAT_LIBRARY avformat REQUIRED)
-find_library(AVCODEC_LIBRARY avcodec REQUIRED)
-find_library(AVUTIL_LIBRARY avutil REQUIRED)
-find_library(ASWRESAMPLE_LIBRARY swresample REQUIRED)
-find_library(SWSCALE_LIBRARY swscale REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
+    libavdevice
+    libavfilter
+    libavformat
+    libavcodec
+    libswresample
+    libswscale
+    libavutil
+)
 
-set(FFMPEG_LIBRARIES
-        ${AVCODEC_LIBRARY}
-        ${AVFORMAT_LIBRARY}
-        ${AVUTIL_LIBRARY}
-        ${AVDEVICE_LIBRARY}
-        ${AVFILTER_LIBRARY}
-        ${ASWRESAMPLE_LIBRARY}
-        ${SWSCALE_LIBRARY})
+include_directories(${FFMPEG_INCLUDE_DIRS})
 
-target_link_libraries(VIDEO_ENCODER_DECODER ${FFMPEG_LIBRARIES})
+# find_library(AVDEVICE_LIBRARY avdevice REQUIRED)
+# find_library(AVFILTER_LIBRARY avfilter REQUIRED)
+# find_library(AVFORMAT_LIBRARY avformat REQUIRED)
+# find_library(AVCODEC_LIBRARY avcodec REQUIRED)
+# find_library(AVUTIL_LIBRARY avutil REQUIRED)
+# find_library(ASWRESAMPLE_LIBRARY swresample REQUIRED)
+# find_library(SWSCALE_LIBRARY swscale REQUIRED)
+
+# set(FFMPEG_LIBRARIES
+#         ${AVCODEC_LIBRARY}
+#         ${AVFORMAT_LIBRARY}
+#         ${AVUTIL_LIBRARY}
+#         ${AVDEVICE_LIBRARY}
+#         ${AVFILTER_LIBRARY}
+#         ${ASWRESAMPLE_LIBRARY}
+#         ${SWSCALE_LIBRARY})
+
+target_link_libraries(VIDEO_ENCODER_DECODER PkgConfig::LIBAV)

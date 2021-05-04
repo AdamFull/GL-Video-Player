@@ -1,9 +1,9 @@
 #ifndef __SHADERLOADER__
 #define __SHADERLOADER__
 
-#include <glad/glad.h>
+#include "GShader.hpp"
 
-#include <string>
+#include <map>
 #include <vector>
 #include <filesystem>
 
@@ -21,24 +21,14 @@ public:
 
     void loadShaders();
     void ReadDirrectory(const fs::path&, std::vector<std::string>*);
-    GLuint getProgram() { return programm_ID; }
 
-    void setBool(const std::string &name, bool value) const{         
-        glUniform1i(glGetUniformLocation(programm_ID, name.c_str()), (int)value); 
-    }
+    GShader& getShader(std::string shader_name) { return loaded_shaders.at(shader_name); }
 
-    void setInt(const std::string &name, int value) const{ 
-        glUniform1i(glGetUniformLocation(programm_ID, name.c_str()), value); 
-    }
-
-    void setFloat(const std::string &name, float value) const{ 
-        glUniform1f(glGetUniformLocation(programm_ID, name.c_str()), value); 
-    } 
 private:
     std::vector<GLuint> compiledShaders;
     std::vector<std::string> shaderPaths;
     std::string pathPrefix;
-    GLuint programm_ID;
+    std::map<std::string, GShader> loaded_shaders;
 };
 
 

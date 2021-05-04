@@ -93,7 +93,7 @@ void ShaderLoader::loadShaders()
     int success;
     char infoLog[512];
 
-    programm_ID = glCreateProgram();
+    GLuint programm_ID = glCreateProgram();
 
     for (std::string cfpath : foundedFiles)
     {
@@ -159,6 +159,8 @@ void ShaderLoader::loadShaders()
         glGetProgramInfoLog(programm_ID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" + std::string(infoLog) << std::endl;
     }
+
+    loaded_shaders.emplace("default", GShader(programm_ID));
 
     for (uint32_t i = 0; i < compiledShaders.size(); i++)
         glDeleteShader(compiledShaders[i]);

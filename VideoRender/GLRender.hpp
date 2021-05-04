@@ -38,7 +38,6 @@ public:
 
     void add(std::shared_ptr<GRenderObject> robj);
 
-    void create_texture();
     GLuint get_texture() { return tex_handle; }
 
     bool initialize();

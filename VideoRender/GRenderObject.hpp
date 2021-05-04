@@ -1,8 +1,10 @@
 #pragma once
 
+#include "GShader.hpp"
+
 class GRenderObject
 {
 public:
-    virtual void render(GLuint, GLuint, GLuint) = 0;
+    virtual void render(GShader shader) = 0;
 };
 

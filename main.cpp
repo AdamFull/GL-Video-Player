@@ -1,6 +1,7 @@
 #include <iostream>
 #include "VideoRender/GLRender.hpp"
-#include "VideoRender/GTextureObject.hpp"
+#include "VideoRender/GTexture2D.hpp"
+#include "VideoRender/GSprite.hpp"
 #include "VideoRender/GTypeObject.hpp"
 #include "VideoEncDec/VideoFile.hpp"
 #include "AudioPlayer/ALPlayer.hpp"
@@ -33,6 +34,9 @@ int main(int, char**)
 
     renderer.create_texture();
 
+    std::shared_ptr<GSprite> movie_screen = std::make_shared<GSprite>();
+    GTexture2D movie_texture;
+
     glfwSetTime(0.0);
     while(is_file_not_end)
     {
@@ -44,7 +48,9 @@ int main(int, char**)
             glfwWaitEventsTimeout(pt_in_seconds - glfwGetTime());
         }
 
-        renderer.add(std::make_shared<GTextureObject>(vstream->get_frame(), vstream->get_width(), vstream->get_height(), renderer.get_texture()));
+        movie_texture.load(vstream->get_width(), vstream->get_height(), vstream->get_frame());
+        movie_screen->update(movie_texture, glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.f);
+        renderer.add(movie_screen);
         renderer.add(std::make_shared<GTypeObject>(&typeMgr, std::to_string(fps), 10, 20, 1));
         renderer.display();
 
