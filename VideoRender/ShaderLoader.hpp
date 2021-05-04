@@ -1,5 +1,4 @@
-#ifndef __SHADERLOADER__
-#define __SHADERLOADER__
+#pragma once
 
 #include "GShader.hpp"
 
@@ -30,6 +29,3 @@ private:
     std::string pathPrefix;
     std::map<std::string, GShader> loaded_shaders;
 };
-
-
-#endif

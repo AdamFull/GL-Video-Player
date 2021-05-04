@@ -1,5 +1,7 @@
 #include "decoder_helper.h"
 
+enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
+
 enum AVPixelFormat correct_for_deprecated_pixel_format(enum AVPixelFormat pix_fmt)
 {
     // Fix swscaler deprecated pixel format warning

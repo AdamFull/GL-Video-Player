@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -18,7 +18,7 @@ struct Character {
 class TypeManager
 {
 public:
-    TypeManager(/* args */);
+    TypeManager();
     ~TypeManager();
 
     bool load(std::string font_name);
@@ -30,3 +30,4 @@ private:
 
     std::map<GLchar, Character> Characters;
 };
+*/

@@ -38,8 +38,6 @@ public:
 
     void add(std::shared_ptr<GRenderObject> robj);
 
-    GLuint get_texture() { return tex_handle; }
-
     bool initialize();
     bool initialize(std::string shaderFolderPath);
 
@@ -56,8 +54,6 @@ public:
 /**********************************GL private variables**************************************/
 private:
     GLFWwindow* window;
-    GLuint VBO, VAO, EBO;
-    GLuint tex_handle;
     ShaderLoader shaderLoader;
     std::queue<std::shared_ptr<GRenderObject>> objects_to_render;
 

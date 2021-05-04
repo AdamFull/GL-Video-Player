@@ -1,7 +1,7 @@
-#include "TypeManager.hpp"
+/*#include "TypeManager.hpp"
 #include <iostream>
 
-TypeManager::TypeManager(/* args */)
+TypeManager::TypeManager()
 {
     if (FT_Init_FreeType(&ft))
     {
@@ -76,4 +76,4 @@ bool TypeManager::load(std::string font_name)
     // destroy FreeType once we're finished
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
-}
+}*/

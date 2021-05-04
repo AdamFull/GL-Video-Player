@@ -26,7 +26,6 @@ extern "C"{
     #define HW_DECODER_NAME "mediacodec"
 #endif
 
-static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
 enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts);
 enum AVPixelFormat correct_for_deprecated_pixel_format(enum AVPixelFormat pix_fmt);
 

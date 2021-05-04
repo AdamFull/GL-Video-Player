@@ -2,7 +2,7 @@
 #include "VideoRender/GLRender.hpp"
 #include "VideoRender/GTexture2D.hpp"
 #include "VideoRender/GSprite.hpp"
-#include "VideoRender/GTypeObject.hpp"
+//#include "VideoRender/GTypeObject.hpp"
 #include "VideoEncDec/VideoFile.hpp"
 //#include "AudioPlayer/ALPlayer.hpp"
 
@@ -22,18 +22,18 @@ int main(int, char**)
 
     VideoStream* vstream = vfile.GetVideoStream();
     GLRender renderer(vstream->get_width(), vstream->get_height());
-    TypeManager typeMgr;
+    //TypeManager typeMgr;
 
     #ifdef _WIN32
     renderer.initialize("../../resources/shaders/");
-    typeMgr.load("../../resources/fonts/OpenSans-Bold.ttf"); 
+    //typeMgr.load("../../resources/fonts/OpenSans-Bold.ttf"); 
     #else
     renderer.initialize("../resources/shaders/");
-    typeMgr.load("../resources/fonts/OpenSans-Bold.ttf"); 
+    //typeMgr.load("../resources/fonts/OpenSans-Bold.ttf"); 
     #endif
 
-    std::shared_ptr<GSprite> movie_screen = std::make_shared<GSprite>();
     GTexture2D movie_texture;
+    std::shared_ptr<GSprite> movie_screen = std::make_shared<GSprite>();
 
     glfwSetTime(0.0);
     while(is_file_not_end)
@@ -49,7 +49,7 @@ int main(int, char**)
         movie_texture.load(vstream->get_width(), vstream->get_height(), vstream->get_frame());
         movie_screen->update(movie_texture, glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.f);
         renderer.add(movie_screen);
-        renderer.add(std::make_shared<GTypeObject>(&typeMgr, std::to_string(fps), 10, 20, 1));
+        //renderer.add(std::make_shared<GTypeObject>(&typeMgr, std::to_string(fps), 10, 20, 1));
         renderer.display();
 
         if(vfile.GetAudioStream()->is_decoded())

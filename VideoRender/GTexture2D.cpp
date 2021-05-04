@@ -1,13 +1,13 @@
 #include "GTexture2D.hpp"
 
-GTexture2D::GTexture2D(/* args */)
+GTexture2D::GTexture2D()
 {
-    glGenTextures(GL_TEXTURE_2D, &this->ID);
+    glGenTextures(GL_TEXTURE_2D, &ID);
 }
 
 GTexture2D::GTexture2D(GLuint width, GLuint height, uint8_t* data)
 {
-    glGenTextures(GL_TEXTURE_2D, &this->ID);
+    glGenTextures(GL_TEXTURE_2D, &ID);
     this->load(width, height, data);
 }
 

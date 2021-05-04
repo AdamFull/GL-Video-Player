@@ -15,7 +15,7 @@ public:
     void render(GShader shader) override;
 private:
     GTexture2D texture;
-    GLuint VBO, VAO;
+    GLuint VBO, VAO, EBO;
     glm::vec2 position, scale;
     float rotate;
 };

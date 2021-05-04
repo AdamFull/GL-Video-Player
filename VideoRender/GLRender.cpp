@@ -61,8 +61,6 @@ GLRender::GLRender(int sWidth, int sHeight, GLInputCallbacks *glInputCallbacks)
 /*****************************************************************************************/
 GLRender::~GLRender()
 {
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
     glfwTerminate();
 }
 
@@ -77,14 +75,14 @@ bool GLRender::initialize(std::string shaderFolderPath)
 {
     std::cout << "Initialisation started." << std::endl;
     glfwInit();
-
-#ifdef __APPLE__
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     window = glfwCreateWindow(width, height, "video player", NULL, NULL);
     if (window == NULL)
     {
@@ -96,6 +94,12 @@ bool GLRender::initialize(std::string shaderFolderPath)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return false;
+    }
+
     glfwSetFramebufferSizeCallback(window, window_size_callback);
     /*if(glInputCallbacks.glKbCb)
         glfwSetKeyCallback(window, glInputCallbacks.glKbCb);
@@ -104,32 +108,32 @@ bool GLRender::initialize(std::string shaderFolderPath)
     if(glInputCallbacks.glMbCb)
         glfwSetMouseButtonCallback(window, glInputCallbacks.glMbCb);*/
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return false;
-    }
+    glViewport(0, 0, width, height);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     //Shaders initialisation
     shaderLoader.addShaderFolder(shaderFolderPath);
     shaderLoader.loadShaders();
 
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), 0.0f, static_cast<float>(height));
+    shaderLoader.getShader("default").execute();
+    shaderLoader.getShader("default").setInt("image", 0);
     shaderLoader.getShader("default").SetMatrix4("projection", projection);
 
-    float vertices[] = {
+    /*float vertices[] = {
         // positions          // colors           // texture coords
          1.0f,  -1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // bottom right
          1.0f, 1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // top right
         -1.0f, 1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // top left 
         -1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // bottom left
-    };
-    unsigned int indices[] = {  
+    };*/
+    /*unsigned int indices[] = {  
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
-    };
+    };*/
 
-    glGenVertexArrays(1, &VAO);
+    /*glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
@@ -139,16 +143,16 @@ bool GLRender::initialize(std::string shaderFolderPath)
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    /*glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(2);*/
 
 #ifdef GL_SHADING_LANGUAGE_VERSION
     std::cout << std::string("Supported GLSL version is ") + (char *)glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;

@@ -3,7 +3,7 @@
 #include "memory_helper.h"
 #include "decoder_helper.h"
 
-//extern enum AVPixelFormat hw_pix_fmt;
+extern enum AVPixelFormat hw_pix_fmt;
 
 HWDecoder::HWDecoder(/* args */)
 {
