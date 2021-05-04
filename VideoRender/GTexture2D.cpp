@@ -2,13 +2,18 @@
 
 GTexture2D::GTexture2D()
 {
-    glGenTextures(GL_TEXTURE_2D, &ID);
+    
 }
 
 GTexture2D::GTexture2D(GLuint width, GLuint height, uint8_t* data)
 {
-    glGenTextures(GL_TEXTURE_2D, &ID);
+    init();
     this->load(width, height, data);
+}
+
+void GTexture2D::init()
+{
+    glGenTextures(GL_TEXTURE_2D, &ID);
 }
 
 GTexture2D::~GTexture2D()

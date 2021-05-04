@@ -20,4 +20,5 @@ bool realloc_frame(AVFrame** av_frame)
             return false;
         }
     }
+    return false;
 }

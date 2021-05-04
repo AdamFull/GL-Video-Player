@@ -1,13 +1,11 @@
 file(GLOB GL_RENDER_FILES *.cpp *.hpp)
-add_library(GL_RENDER SHARED ${GL_RENDER_FILES})
+add_library(GL_RENDER ${GL_RENDER_FILES})
 
 set(OpenGL_GL_PREFERENCE "GLVND")
 
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
 include_directories(${OpenGL_INCLUDE_DIRS})
-
-message(${OPENGL_LIBRARIES})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glad/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/glad/include/)

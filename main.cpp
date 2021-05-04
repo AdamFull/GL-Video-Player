@@ -6,6 +6,9 @@
 #include "VideoEncDec/VideoFile.hpp"
 //#include "AudioPlayer/ALPlayer.hpp"
 
+
+std::shared_ptr<GSprite> movie_screen;
+std::shared_ptr<GTexture2D> movie_texture;
 bool is_file_not_end = true;
 double fps = 0.0;
 
@@ -32,8 +35,10 @@ int main(int, char**)
     //typeMgr.load("../resources/fonts/OpenSans-Bold.ttf"); 
     #endif
 
-    GTexture2D movie_texture;
-    std::shared_ptr<GSprite> movie_screen = std::make_shared<GSprite>();
+    movie_screen = std::make_shared<GSprite>();
+    movie_screen->init();
+    movie_texture = std::make_shared<GTexture2D>();
+    movie_texture->init();
 
     glfwSetTime(0.0);
     while(is_file_not_end)
@@ -46,7 +51,7 @@ int main(int, char**)
             glfwWaitEventsTimeout(pt_in_seconds - glfwGetTime());
         }
 
-        movie_texture.load(vstream->get_width(), vstream->get_height(), vstream->get_frame());
+        movie_texture->load(vstream->get_width(), vstream->get_height(), vstream->get_frame());
         movie_screen->update(movie_texture, glm::vec2(0.0, 0.0), glm::vec2(1.0, 1.0), 0.f);
         renderer.add(movie_screen);
         //renderer.add(std::make_shared<GTypeObject>(&typeMgr, std::to_string(fps), 10, 20, 1));

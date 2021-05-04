@@ -24,8 +24,8 @@ public:
     bool decode(AVFormatContext* av_format_ctx, AVPacket* av_packet);
     //bool seek_frame(int64_t ts);
 
-    size_t get_width() { return width; }
-    size_t get_height() { return height; }
+    int get_width() { return width; }
+    int get_height() { return height; }
 
     int get_stream_index() { return video_stream_index; }
 
@@ -34,7 +34,7 @@ public:
 
 private:
     HWDecoder hwdecoder;
-    size_t width, height;
+    int width, height;
     AVRational time_base;
 
     uint8_t *frame_buffer;
