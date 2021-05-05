@@ -1,6 +1,10 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
-#include "VideoEncDec/VideoFile.hpp"
+
+extern "C"
+{
+#include "CVideoEncDec/VideoFile.h"
+}
 
 #define AVG_BUFFER_SIZE 10
 bool is_file_not_end = true;
@@ -11,14 +15,17 @@ int avg_buffer_counter = 0;
 
 int main()
 {
-    VideoFile vfile;
+    CVideoFile* vfile;
+    vfile = video_file_alloc();
+    //video_file_allow_hwdecoding_video(&vfile);
+    
     #ifdef _WIN32
-    vfile.open("../../resources/samples/videoplayback1.mp4");
+    video_file_open(&vfile, "../../resources/samples/videoplayback1.mp4");
     #else
-    vfile.open("../resources/samples/videoplayback3.mp4");
+    video_file_open(&vfile, "../resources/samples/videoplayback3.mp4");
     #endif
 
-    VideoStream* vstream = vfile.GetVideoStream();
+    CDataStream* vstream = vfile->vstream;
 
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Video Player");
     window.setVerticalSyncEnabled(true);
@@ -30,12 +37,8 @@ int main()
     #else
     font.loadFromFile("../resources/fonts/OpenSans-Bold.ttf");
     #endif
-    sf::Text cur_fps, max_fps, min_fps;
-    cur_fps.setFont(font);
-    max_fps.setFont(font);
-    max_fps.setPosition(0, 40);
-    min_fps.setFont(font);
-    min_fps.setPosition(0, 80);
+    sf::Text cur_fps("", font, 16);
+    //cur_fps.setFont(font);
 
     sf::Texture texture;
     sf::Sprite sprite;
@@ -43,9 +46,10 @@ int main()
     sf::Clock video_timer;
 
     video_timer.restart();
-    texture.create(vstream->get_width(), vstream->get_width());
+    texture.create(vstream->fwidth, vstream->fheight);
     while(is_file_not_end)
     {
+        std::string fps_stats;
         if(fps > fps_max)
             fps_max = fps;
         else if(fps < fps_min)
@@ -59,25 +63,26 @@ int main()
                 window.close();
         }
 
-        double pt_in_seconds = vfile.GetVideoStream()->get_seconds();
+        double pt_in_seconds = data_stream_get_pt_seconds(&vstream);
         while (pt_in_seconds > video_timer.getElapsedTime().asSeconds());
 
         sf::Vector2u wind_size = window.getSize();
-        vstream->set_rescale_size(wind_size.x, wind_size.y);
+        data_stream_set_frame_size(&vstream, wind_size.x, wind_size.y);
         
         window.clear();
-        is_file_not_end = vfile.read_frame();
+        is_file_not_end = video_file_read_frame(&vfile);
 
-        texture.update(vstream->get_frame(), wind_size.x, wind_size.y, 0, 0);
+        texture.update(vstream->block_buffer, wind_size.x, wind_size.y, 0, 0);
         sprite.setTexture(texture);
-        cur_fps.setString("AVG: " + std::to_string(fps_avg));
-        max_fps.setString("MAX: " + std::to_string(fps_max));
-        min_fps.setString("MIN: " + std::to_string(fps_min));
+        fps_stats += "FPS: " + std::to_string(fps) + "\n";
+        fps_stats += "AVG: " + std::to_string(fps_avg) + "\n";
+        fps_stats += "MAX: " + std::to_string(fps_max) + "\n";
+        fps_stats += "MIN: " + std::to_string(fps_min) + "\n";
+
+        cur_fps.setString(fps_stats);
 
         window.draw(sprite);
         window.draw(cur_fps);
-        window.draw(max_fps);
-        window.draw(min_fps);
         window.display();
 
         fps = 1.f / clock.restart().asSeconds();

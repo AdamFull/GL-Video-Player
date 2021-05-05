@@ -1,13 +1,8 @@
-#pragma once
+#ifndef AV_HELPERS
+#define AV_HELPERS
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
+#include <stdbool.h>
 #include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-
-#define OLD_DECODER_FORMAT
 
 #if defined(_WIN32)
     #define HW_DECODER_NAME "none"
@@ -27,8 +22,8 @@ extern "C"{
     #define HW_DECODER_NAME "mediacodec"
 #endif
 
+bool realloc_frame(AVFrame**);
+void print_error(int);
 enum AVPixelFormat correct_for_deprecated_pixel_format(enum AVPixelFormat pix_fmt);
 
-#ifdef __cplusplus
-}
 #endif

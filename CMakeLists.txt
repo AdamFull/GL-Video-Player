@@ -14,8 +14,10 @@ add_executable(GL-VIDEO-PLAYER ${CPP_FILES})
 # endif()
 
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/AudioPlayer/) AL_PLAYER
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoEncDec/)
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoEncDec/)
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoRender/) GL_RENDER
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CVideoEncDec/)
 
 find_package(SFML COMPONENTS graphics audio REQUIRED)
 

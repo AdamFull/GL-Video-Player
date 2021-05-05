@@ -87,13 +87,6 @@ bool VideoStream::open(AVFormatContext* av_format_ctx)
         return false;
     }
 
-    /*frame_buffer = (uint8_t*)std::aligned_alloc(32, width * height * 4);
-    if (!frame_buffer) 
-    {
-        printf("Couldn't allocate frame buffer\n");
-        return false;
-    }*/
-
     return true;
 }
 
@@ -104,13 +97,6 @@ void VideoStream::set_rescale_size(int nwidth, int nheight)
         to_width = nwidth;
         to_height = nheight;
         needs_reinit_scaler = true;
-
-        /*if (frame_buffer)
-            std::free(frame_buffer);
-
-        frame_buffer = (uint8_t*)std::aligned_alloc(32, width * height * 4);
-        if (!frame_buffer) 
-            printf("Couldn't allocate frame buffer\n");*/
     }
 }
 

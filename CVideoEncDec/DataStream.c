@@ -1,0 +1,229 @@
+#include "DataStream.h"
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include "helpers.h"
+
+CDataStream* data_stream_alloc()
+{
+    CDataStream* dstream = NULL;
+    dstream = (CDataStream*)malloc(sizeof(CDataStream));
+    dstream->hwdecoder = hwdecoder_alloc();
+
+    dstream->stream_type = 0;
+    dstream->vneed_rescaler_update = 0;
+    dstream->allow_hardware_decoding = 0;
+    dstream->allocated_block_size = 0;
+    dstream->block_buffer = NULL;
+    dstream->pts = 0;
+    dstream->data_stream_index = -1;
+    dstream->av_codec_ctx = NULL;
+    dstream->av_frame = NULL;
+    dstream->sc_frame = NULL;
+    dstream->sws_scaler_ctx = NULL;
+    dstream->swr_ctx = NULL;
+
+    return dstream;
+}
+
+bool data_stream_initialize(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, enum AVMediaType stream_type, bool allow_hardware)
+{
+    CDataStream* stream = *stream_ptr;
+    AVCodecParameters *av_codec_params;
+    AVCodec *av_codec;
+    bool hw_result = false;
+
+    stream->stream_type = stream_type;
+    stream->allow_hardware_decoding = allow_hardware;
+
+    (*stream_ptr)->stream_type = stream_type;
+    (*stream_ptr)->allow_hardware_decoding = allow_hardware;
+
+    // Find the first valid video stream inside the file
+    stream->data_stream_index = av_find_best_stream(av_format_ctx, stream_type, -1, -1, &av_codec, 0);
+
+    if (stream->data_stream_index < 0)
+    {
+        print_error(stream->data_stream_index);
+        return false;
+    }
+
+    av_codec_params = av_format_ctx->streams[stream->data_stream_index]->codecpar;
+    stream->time_base = av_format_ctx->streams[stream->data_stream_index]->time_base;
+    if(stream_type == AVMEDIA_TYPE_VIDEO)
+    {
+        stream->fwidth = av_codec_params->width;
+        stream->fheight = av_codec_params->height;
+    }
+
+    if(allow_hardware)
+        hw_result = hwdecoder_initialize(&stream->hwdecoder, av_codec, &stream->av_codec_ctx, av_codec_params);
+
+    if(!hw_result)
+    {
+            // Set up a codec context for the decoder
+        stream->av_codec_ctx = avcodec_alloc_context3(av_codec);
+        if (!stream->av_codec_ctx)
+        {
+            printf("Couldn't create AVCodecContext\n");
+            return false;
+        }
+        
+
+        if (avcodec_parameters_to_context(stream->av_codec_ctx, av_codec_params) < 0)
+        {
+            printf("Couldn't initialize AVCodecContext\n");
+            return false;
+        }
+
+        if (avcodec_open2(stream->av_codec_ctx, av_codec, NULL) < 0)
+        {
+            printf("Couldn't open codec\n");
+            return false;
+        }
+    }
+
+    if (!(stream->sc_frame = av_frame_alloc()))
+    {
+        fprintf(stderr, "Can not alloc frame\n");
+        return false;
+    }
+
+    return true;
+
+}
+
+bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet)
+{
+    int response;
+    CDataStream* stream = *stream_ptr;
+
+    response = avcodec_send_packet(stream->av_codec_ctx, av_packet);
+    if (response < 0)
+    {
+        print_error(response);
+        return false;
+    }
+
+    realloc_frame(&stream->av_frame);
+
+    response = avcodec_receive_frame(stream->av_codec_ctx, stream->av_frame);
+    if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+    {
+        av_frame_free(&stream->av_frame);
+        return false;
+    }
+    else if (response < 0)
+    {
+        print_error(response);
+        return false;
+    }
+
+    if(hwdecoder_is_ready(&stream->hwdecoder) && stream->allow_hardware_decoding)
+    {
+        if(!hwdecoder_decode(&stream->hwdecoder, av_packet, &stream->av_frame))
+        {
+            printf("Failed while decoding frame on gpu.\n");
+        }
+    }
+
+    stream->pts = stream->av_frame->pts;
+
+    if(stream->stream_type == AVMEDIA_TYPE_VIDEO)
+    {
+        // Set up sws scaler
+        if (!stream->sws_scaler_ctx || stream->vneed_rescaler_update)
+        {
+            if (stream->vneed_rescaler_update && stream->sws_scaler_ctx)
+                sws_freeContext(stream->sws_scaler_ctx);
+
+            auto source_pix_fmt = correct_for_deprecated_pixel_format((enum AVPixelFormat)stream->av_frame->format);
+            //Send here frame params
+            //BEST QUALITY/PERFOMANCE: SWS_BICUBLIN, SWS_AREA
+            stream->sws_scaler_ctx = sws_getContext(stream->fwidth, stream->fheight, source_pix_fmt,
+                                            stream->swidth, stream->sheight, AV_PIX_FMT_RGB0,
+                                            SWS_BICUBLIN, NULL, NULL, NULL);
+
+            if (stream->vneed_rescaler_update && stream->block_buffer)
+                av_free(stream->block_buffer);
+
+            stream->allocated_block_size = avpicture_get_size(AV_PIX_FMT_RGB0, stream->swidth, stream->sheight);
+            stream->block_buffer = (uint8_t *)av_malloc((stream->allocated_block_size) * sizeof(uint8_t));
+            stream->vneed_rescaler_update = false;
+        }
+
+        if (!stream->sws_scaler_ctx)
+        {
+            printf("Couldn't create sws scaler\n");
+            return false;
+        }
+
+        avpicture_fill((AVPicture *)stream->sc_frame, stream->block_buffer, AV_PIX_FMT_RGB0, stream->swidth, stream->sheight);
+        sws_scale(stream->sws_scaler_ctx, stream->av_frame->data, stream->av_frame->linesize, 0, stream->fheight, stream->sc_frame->data, stream->sc_frame->linesize);
+    }
+    else if(stream->stream_type == AVMEDIA_TYPE_AUDIO)
+    {
+        av_samples_alloc(&stream->block_buffer, stream->allocated_block_size, stream->av_frame->channels, stream->av_frame->sample_rate, AV_SAMPLE_FMT_FLT, 0);
+
+        if(!stream->swr_ctx)
+        {
+            stream->swr_ctx = swr_alloc_set_opts(NULL, stream->av_codec_ctx->channel_layout,
+                                         AV_SAMPLE_FMT_S16, stream->av_codec_ctx->sample_rate,
+                                         stream->av_codec_ctx->channel_layout, stream->av_codec_ctx->sample_fmt,
+                                         stream->av_codec_ctx->sample_rate, 0, NULL);
+
+            if (!stream->swr_ctx)
+            {
+                printf("Couldn't allocate swr context\n");
+                return false;
+            }
+
+            if (swr_init(stream->swr_ctx) < 0)
+            {
+                printf("Couldn't initialize swr context\n");
+                return false;
+            }
+        }
+
+        response = swr_convert(stream->swr_ctx, &stream->block_buffer, stream->av_frame->sample_rate, (const uint8_t **)stream->av_frame->extended_data, stream->av_frame->nb_samples);
+        stream->allocated_block_size = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT) * stream->av_frame->channels * response;
+
+        if (response < 0)
+        {
+            printf("Couldn't convert audio frame.\n");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+double data_stream_get_pt_seconds(CDataStream** stream_ptr)
+{
+    int64_t pts = (*stream_ptr)->pts;
+    AVRational time_base = (*stream_ptr)->time_base;
+
+    return pts * (double)time_base.num / (double)time_base.den;
+}
+
+void data_stream_set_frame_size(CDataStream** stream_ptr, int32_t nwidth, int32_t nheight)
+{
+    CDataStream* stream = *stream_ptr;
+
+    if(nwidth != stream->swidth && nheight != stream->sheight)
+    {
+        stream->swidth = nwidth;
+        stream->sheight = nheight;
+        stream->vneed_rescaler_update = true;
+    }
+}
+
+bool data_stream_close(CDataStream** stream_ptr)
+{
+    sws_freeContext((*stream_ptr)->sws_scaler_ctx);
+    av_frame_free(&(*stream_ptr)->av_frame);
+    av_frame_free(&(*stream_ptr)->sc_frame);
+    avcodec_free_context(&(*stream_ptr)->av_codec_ctx);
+    av_free((*stream_ptr)->block_buffer);
+    hwdecoder_close(&(*stream_ptr)->hwdecoder);
+    free(*stream_ptr);
+}
