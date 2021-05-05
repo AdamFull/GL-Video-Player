@@ -166,8 +166,8 @@ bool VideoStream::decode(AVFormatContext* av_format_ctx, AVPacket* av_packet)
         if(needs_reinit_scaler && frame_buffer)
             av_free(frame_buffer);
 
-        int num_bytes = avpicture_get_size(AV_PIX_FMT_RGB0, to_width, to_height);
-        frame_buffer = (uint8_t *)av_malloc(num_bytes*sizeof(uint8_t));
+        allocated_frame_size = avpicture_get_size(AV_PIX_FMT_RGB0, to_width, to_height);
+        frame_buffer = (uint8_t *)av_malloc(allocated_frame_size*sizeof(uint8_t));
         needs_reinit_scaler = false;
     }
 

@@ -10,7 +10,7 @@ extern "C"{
 #define OLD_DECODER_FORMAT
 
 #if defined(_WIN32)
-    #define HW_DECODER_NAME "dxva2"
+    #define HW_DECODER_NAME "none"
 #elif defined(__linux__)
     #define HW_DECODER_NAME "cuda"
 #elif defined(__APPLE__)
