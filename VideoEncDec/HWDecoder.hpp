@@ -2,8 +2,7 @@
 
 extern "C" 
 {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
+#include "decoder_helper.h"
 }
 
 class HWDecoder

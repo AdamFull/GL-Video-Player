@@ -3,6 +3,9 @@
 VideoFile::VideoFile()
 {
     av_register_all();
+    #ifdef VENC_DEBUG
+    av_log_set_level(AV_LOG_DEBUG);
+    #endif
     vstream = new VideoStream();
     astream = new AudioStream();
 }

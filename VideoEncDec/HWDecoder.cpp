@@ -1,9 +1,22 @@
 #include "HWDecoder.hpp"
 #include <libswscale/swscale.h>
 #include "memory_helper.h"
-#include "decoder_helper.h"
 
-extern enum AVPixelFormat hw_pix_fmt;
+enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
+
+enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixelFormat *pix_fmts)
+{
+    const enum AVPixelFormat *p;
+
+    for (p = pix_fmts; *p != -1; p++)
+    {
+        if (*p == hw_pix_fmt)
+            return *p;
+    }
+
+    fprintf(stderr, "Failed to get HW surface format.\n");
+    return AV_PIX_FMT_NONE;
+}
 
 HWDecoder::HWDecoder(/* args */)
 {

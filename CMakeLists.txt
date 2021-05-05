@@ -9,6 +9,10 @@ enable_testing()
 file(GLOB CPP_FILES *.cpp *.c *.hpp *.h)
 add_executable(GL-VIDEO-PLAYER ${CPP_FILES})
 
+# if(WIN32)
+# set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+# endif()
+
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/AudioPlayer/) AL_PLAYER
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoEncDec/)
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VideoRender/) GL_RENDER

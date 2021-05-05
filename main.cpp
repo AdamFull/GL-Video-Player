@@ -20,12 +20,16 @@ int main()
 
     VideoStream* vstream = vfile.GetVideoStream();
 
-    sf::RenderWindow window(sf::VideoMode(vstream->get_width(), vstream->get_height()), "Video Player");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Video Player");
     window.setVerticalSyncEnabled(true);
     //vstream->set_rescale_size(sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height);
 
     sf::Font font;
+    #ifdef _WIN32
+    font.loadFromFile("../../resources/fonts/OpenSans-Bold.ttf");
+    #else
     font.loadFromFile("../resources/fonts/OpenSans-Bold.ttf");
+    #endif
     sf::Text cur_fps, max_fps, min_fps;
     cur_fps.setFont(font);
     max_fps.setFont(font);
