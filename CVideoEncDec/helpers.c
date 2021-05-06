@@ -4,7 +4,8 @@ void print_error(int errcode)
 {
     char serror[64] = {0};
     av_make_error_string(serror, 64, errcode);
-    printf(serror);
+    serror[strlen(serror)] = '\n';
+    printf(serror + '\0');
 }
 
 bool realloc_frame(AVFrame** av_frame)

@@ -3,6 +3,8 @@
 
 #include "HWDecoder.h"
 
+typedef bool (*data_stream_get_sw_data_t)(struct CDataStream**);
+
 typedef struct CDataStream
 {
 
@@ -28,17 +30,24 @@ typedef struct CDataStream
     struct SwsContext*      sws_scaler_ctx;
     struct SwrContext*      swr_ctx;
 
+    data_stream_get_sw_data_t data_stream_get_sw_data_ptr;
+
 }CDataStream;
 
 CDataStream* data_stream_alloc(void);
 
-bool data_stream_initialize(CDataStream**, AVFormatContext*, enum AVMediaType, bool);
+bool data_stream_initialize_decode(CDataStream**, AVFormatContext*, enum AVMediaType, bool);
+bool data_stream_initialize_encode(CDataStream**, enum AVCodecID, AVCodecParameters*);
 
 bool data_stream_decode(CDataStream**, AVFormatContext*, AVPacket*);
+bool data_stream_encode(CDataStream**, AVFormatContext*, AVPacket*);
 
 double data_stream_get_pt_seconds(CDataStream**);
 
 void data_stream_set_frame_size(CDataStream**, int32_t, int32_t);
+
+bool data_stream_get_sw_data_audio(CDataStream**);
+bool data_stream_get_sw_data_video(CDataStream**);
 
 bool data_stream_close(CDataStream**);
 

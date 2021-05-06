@@ -17,12 +17,12 @@ int main()
 {
     CVideoFile* vfile;
     vfile = video_file_alloc();
-    //video_file_allow_hwdecoding_video(&vfile);
+    video_file_allow_hwdecoding_video(&vfile);
     
     #ifdef _WIN32
-    video_file_open(&vfile, "../../resources/samples/videoplayback1.mp4");
+    video_file_open_decode(&vfile, "../../resources/samples/videoplayback1.mp4");
     #else
-    video_file_open(&vfile, "../resources/samples/videoplayback3.mp4");
+    video_file_open_decode(&vfile, "../resources/samples/videoplayback3.mp4");
     #endif
 
     CDataStream* vstream = vfile->vstream;
@@ -46,7 +46,6 @@ int main()
     sf::Clock video_timer;
 
     video_timer.restart();
-    texture.create(vstream->fwidth, vstream->fheight);
     while(is_file_not_end)
     {
         std::string fps_stats;
@@ -72,7 +71,9 @@ int main()
         window.clear();
         is_file_not_end = video_file_read_frame(&vfile);
 
+        texture.create(wind_size.x, wind_size.y);
         texture.update(vstream->block_buffer, wind_size.x, wind_size.y, 0, 0);
+
         sprite.setTexture(texture);
         fps_stats += "FPS: " + std::to_string(fps) + "\n";
         fps_stats += "AVG: " + std::to_string(fps_avg) + "\n";

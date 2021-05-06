@@ -13,12 +13,14 @@ typedef struct CHWDecoder
     bool                b_is_initialized;
 } CHWDecoder;
 
-CHWDecoder* hwdecoder_alloc(void);
+CHWDecoder* hw_alloc(void);
 
-bool hwdecoder_initialize(CHWDecoder**, AVCodec*, AVCodecContext**, AVCodecParameters*);
-bool hwdecoder_is_ready(CHWDecoder**);
-bool hwdecoder_decode(CHWDecoder**, AVPacket*, AVFrame**);
+bool hw_initialize_decoder(CHWDecoder**, AVCodec*, AVCodecContext**, AVCodecParameters*);
+bool hw_initialize_encoder(CHWDecoder**, AVCodec*, AVCodecContext**, AVCodecParameters*);
+bool hw_is_coder_ready(CHWDecoder**);
+bool hw_decode(CHWDecoder**, AVPacket*, AVFrame**);
+bool hw_encode(CHWDecoder**, AVPacket*, AVFrame**);
 
-bool hwdecoder_close(CHWDecoder**);
+bool hw_close(CHWDecoder**);
 
 #endif

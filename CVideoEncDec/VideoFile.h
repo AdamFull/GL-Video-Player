@@ -19,9 +19,11 @@ typedef struct CVideoFile
 
 CVideoFile* video_file_alloc(void);
 
-bool video_file_open(CVideoFile**, const char*);
+bool video_file_open_decode(CVideoFile**, const char*);
+bool video_file_open_encode(CVideoFile**, const char*);
 
 bool video_file_read_frame(CVideoFile**);
+bool video_file_write_frame(CVideoFile**);
 
 bool video_file_allow_hwdecoding_video(CVideoFile**);
 bool video_file_allow_hwdecoding_audio(CVideoFile**);

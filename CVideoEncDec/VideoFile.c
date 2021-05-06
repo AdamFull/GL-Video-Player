@@ -22,7 +22,7 @@ CVideoFile* video_file_alloc()
     return vfile;
 }
 
-bool video_file_open(CVideoFile** vfile_ptr, const char* filepath)
+bool video_file_open_decode(CVideoFile** vfile_ptr, const char* filepath)
 {
     CVideoFile* vfile = *vfile_ptr;
 
@@ -39,12 +39,12 @@ bool video_file_open(CVideoFile** vfile_ptr, const char* filepath)
         return false;
     }
 
-    if(!data_stream_initialize(&vfile->vstream, vfile->av_format_ctx, AVMEDIA_TYPE_VIDEO, vfile->hwdecoding_video))
+    if(!data_stream_initialize_decode(&vfile->vstream, vfile->av_format_ctx, AVMEDIA_TYPE_VIDEO, vfile->hwdecoding_video))
     {
         printf("Couldn't open video stream\n");
     }
 
-    if(!data_stream_initialize(&vfile->astream, vfile->av_format_ctx, AVMEDIA_TYPE_AUDIO, vfile->hwdecoding_audio))
+    if(!data_stream_initialize_decode(&vfile->astream, vfile->av_format_ctx, AVMEDIA_TYPE_AUDIO, vfile->hwdecoding_audio))
     {
         printf("Couldn't open audio stream\n");
     }
@@ -57,6 +57,11 @@ bool video_file_open(CVideoFile** vfile_ptr, const char* filepath)
     }
 
     return true;
+}
+
+bool video_file_open_encode(CVideoFile** vfile_ptr, const char* filepath)
+{
+
 }
 
 bool video_file_read_frame(CVideoFile** vfile_ptr)
@@ -99,6 +104,11 @@ bool video_file_read_frame(CVideoFile** vfile_ptr)
     }
 
     return true;
+} 
+
+bool video_file_write_frame(CVideoFile** vfile_ptr)
+{
+
 }
 
 bool video_file_allow_hwdecoding_video(CVideoFile** vfile_ptr)

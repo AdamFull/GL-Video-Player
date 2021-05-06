@@ -19,7 +19,7 @@ enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixe
     return AV_PIX_FMT_NONE;
 }
 
-CHWDecoder* hwdecoder_alloc()
+CHWDecoder* hw_alloc()
 {
     CHWDecoder* hwdec = NULL;
     hwdec = (CHWDecoder*)malloc(sizeof(CHWDecoder));
@@ -31,7 +31,7 @@ CHWDecoder* hwdecoder_alloc()
     return hwdec;
 }
 
-bool hwdecoder_initialize(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
+bool hw_initialize_decoder(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
 {
     CHWDecoder* hwdec = *hwdec_ptr;
 
@@ -70,6 +70,7 @@ bool hwdecoder_initialize(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecCont
         return false;
     }
 
+    (*av_codec_ctx)->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     (*av_codec_ctx)->get_format  = get_hw_format;
 
     //Initialize hardware context
@@ -93,13 +94,18 @@ bool hwdecoder_initialize(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecCont
     return true;
 }
 
-bool hwdecoder_is_ready(CHWDecoder** hwdec_ptr)
+bool hw_initialize_encoder(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
+{
+
+}
+
+bool hw_is_coder_ready(CHWDecoder** hwdec_ptr)
 {
     CHWDecoder* hwdec = *hwdec_ptr;
     return hwdec->b_is_initialized;
 }
 
-bool hwdecoder_decode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
+bool hw_decode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
 {
     int ret = 0;
     CHWDecoder* hwdec = *hwdec_ptr;
@@ -136,7 +142,12 @@ bool hwdecoder_decode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_
     return false;
 }
 
-bool hwdecoder_close(CHWDecoder** hwdec_ptr)
+bool hw_encode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
+{
+
+}
+
+bool hw_close(CHWDecoder** hwdec_ptr)
 {
     av_frame_free(&(*hwdec_ptr)->sw_frame);
     free(*hwdec_ptr);
