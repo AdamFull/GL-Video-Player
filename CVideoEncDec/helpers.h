@@ -22,8 +22,31 @@
     #define HW_DECODER_NAME "mediacodec"
 #endif
 
+/**
+ * Initialize an CHardwareAccelerator as encoder.
+ *
+ * @param hwdec_ptr
+ *
+ * @return Returns true if all initialization got well.
+ */
 bool realloc_frame(AVFrame**);
+
+/**
+ * Initialize an CHardwareAccelerator as encoder.
+ *
+ * @param hwdec_ptr
+ *
+ * @return Returns true if all initialization got well.
+ */
 void print_error(int);
+
+/**
+ * Initialize an CHardwareAccelerator as encoder.
+ *
+ * @param hwdec_ptr
+ *
+ * @return Returns true if all initialization got well.
+ */
 enum AVPixelFormat correct_for_deprecated_pixel_format(enum AVPixelFormat pix_fmt);
 
 #endif

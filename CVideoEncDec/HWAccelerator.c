@@ -1,4 +1,4 @@
-#include "HWDecoder.h"
+#include "HWAccelerator.h"
 #include "helpers.h"
 
 #include <libswscale/swscale.h>
@@ -19,10 +19,10 @@ enum AVPixelFormat get_hw_format(AVCodecContext *av_codec_ctx, const enum AVPixe
     return AV_PIX_FMT_NONE;
 }
 
-CHWDecoder* hw_alloc()
+CHardwareAccelerator* hw_alloc()
 {
-    CHWDecoder* hwdec = NULL;
-    hwdec = (CHWDecoder*)malloc(sizeof(CHWDecoder));
+    CHardwareAccelerator* hwdec = NULL;
+    hwdec = (CHardwareAccelerator*)malloc(sizeof(CHardwareAccelerator));
 
     hwdec->sw_frame = NULL;
     hwdec->hw_device_ctx = NULL;
@@ -31,9 +31,9 @@ CHWDecoder* hw_alloc()
     return hwdec;
 }
 
-bool hw_initialize_decoder(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
+bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
 {
-    CHWDecoder* hwdec = *hwdec_ptr;
+    CHardwareAccelerator* hwdec = *hwdec_ptr;
 
     //vaapi|vdpau|cuvid|dxva2|d3d11va|qvs|videotoolbox|drm|opencl|mediacodec|vulkan
     enum AVHWDeviceType devType = av_hwdevice_find_type_by_name(HW_DECODER_NAME);
@@ -70,6 +70,8 @@ bool hw_initialize_decoder(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecCon
         return false;
     }
 
+    av_opt_set((*av_codec_ctx)->priv_data, "preset", "fast", 0);
+
     (*av_codec_ctx)->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     (*av_codec_ctx)->get_format  = get_hw_format;
 
@@ -94,21 +96,21 @@ bool hw_initialize_decoder(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecCon
     return true;
 }
 
-bool hw_initialize_encoder(CHWDecoder** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
+bool hw_initialize_encoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
 {
 
 }
 
-bool hw_is_coder_ready(CHWDecoder** hwdec_ptr)
+bool hw_is_coder_ready(CHardwareAccelerator** hwdec_ptr)
 {
-    CHWDecoder* hwdec = *hwdec_ptr;
+    CHardwareAccelerator* hwdec = *hwdec_ptr;
     return hwdec->b_is_initialized;
 }
 
-bool hw_decode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
+bool hw_decode(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
 {
     int ret = 0;
-    CHWDecoder* hwdec = *hwdec_ptr;
+    CHardwareAccelerator* hwdec = *hwdec_ptr;
 
     realloc_frame(&hwdec->sw_frame);
 
@@ -142,12 +144,12 @@ bool hw_decode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
     return false;
 }
 
-bool hw_encode(CHWDecoder** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
+bool hw_encode(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
 {
 
 }
 
-bool hw_close(CHWDecoder** hwdec_ptr)
+bool hw_close(CHardwareAccelerator** hwdec_ptr)
 {
     av_frame_free(&(*hwdec_ptr)->sw_frame);
     free(*hwdec_ptr);
