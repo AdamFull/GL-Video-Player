@@ -98,49 +98,6 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
 
 }
 
-bool data_stream_initialize_encode(CDataStream** stream_ptr, enum AVCodecID codec_id, AVCodecParameters* av_codec_params, bool allow_hardware)
-{
-    CDataStream* stream = *stream_ptr;
-    AVCodec *av_codec;
-    bool hw_result = false;
-
-    if(!(av_codec = avcodec_find_encoder(codec_id)))
-    {
-        fprintf(stderr, "codec not found\n");
-        return false;
-    }
-
-    if(allow_hardware)
-        hw_result = hw_initialize_encoder(&stream->hwdecoder, av_codec, &stream->av_codec_ctx, av_codec_params);
-
-    if(!hw_result)
-    {
-        stream->av_codec_ctx = avcodec_alloc_context3(av_codec);
-        if (!stream->av_codec_ctx)
-        {
-            printf("Couldn't create AVCodecContext\n");
-            return false;
-        }
-
-        if (avcodec_parameters_to_context(stream->av_codec_ctx, av_codec_params) < 0)
-        {
-            printf("Couldn't initialize AVCodecContext\n");
-            return false;
-        }
-
-        if (avcodec_open2(stream->av_codec_ctx, av_codec, NULL) < 0)
-        {
-            printf("Couldn't open codec\n");
-            return false;
-        }
-    }
-
-    stream->allocated_block_size = stream->av_codec_ctx->frame_size;
-    stream->block_buffer = malloc(stream->allocated_block_size * 2 * stream->av_codec_ctx->channels);
-
-    return true;
-}
-
 bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet)
 {
     int response;
@@ -184,11 +141,6 @@ bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx
     }
 
     return true;
-}
-
-bool data_stream_encode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet)
-{
-
 }
 
 bool data_stream_get_sw_data_audio(CDataStream** stream_ptr)
@@ -285,12 +237,12 @@ void data_stream_set_frame_size(CDataStream** stream_ptr, int32_t nwidth, int32_
 
 bool data_stream_close(CDataStream** stream_ptr)
 {
-    //TODO: release all allocated memory
-    sws_freeContext((*stream_ptr)->sws_scaler_ctx);
+    hw_close(&(*stream_ptr)->hwdecoder);
+    av_free((*stream_ptr)->block_buffer);
+    avcodec_free_context(&(*stream_ptr)->av_codec_ctx);
     av_frame_free(&(*stream_ptr)->av_frame);
     av_frame_free(&(*stream_ptr)->sc_frame);
-    avcodec_free_context(&(*stream_ptr)->av_codec_ctx);
-    av_free((*stream_ptr)->block_buffer);
-    hw_close(&(*stream_ptr)->hwdecoder);
+    sws_freeContext((*stream_ptr)->sws_scaler_ctx);
+    swr_free(&(*stream_ptr)->swr_ctx);
     free(*stream_ptr);
 }

@@ -105,5 +105,7 @@ int main()
         }
     }
 
+    video_file_close(&vfile);
+
     window.close();
 }

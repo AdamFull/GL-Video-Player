@@ -152,5 +152,6 @@ bool hw_encode(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet, AVFrame** 
 bool hw_close(CHardwareAccelerator** hwdec_ptr)
 {
     av_frame_free(&(*hwdec_ptr)->sw_frame);
+    av_buffer_unref(&(*hwdec_ptr)->hw_device_ctx);
     free(*hwdec_ptr);
 }

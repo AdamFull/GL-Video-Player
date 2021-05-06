@@ -3,6 +3,12 @@
 
 #include "DataStream.h"
 
+/**
+ * Structure for working with a video file.
+ * 
+ * Stores information about the video and audio stream. 
+ * It also stores a pointer to an open file and data from the decoder.
+ */
 typedef struct CVideoFile
 {
 
@@ -18,11 +24,9 @@ typedef struct CVideoFile
 } CVideoFile;
 
 /**
- * Initialize an CHardwareAccelerator as encoder.
+ * Allocate an CVideoFile and set its fields to default values.
  *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
+ * @return An CVideoFile filled with default values or NULL on failure.
  */
 CVideoFile* video_file_alloc(void);
 
@@ -42,25 +46,7 @@ bool video_file_open_decode(CVideoFile**, const char*);
  *
  * @return Returns true if all initialization got well.
  */
-bool video_file_open_encode(CVideoFile**, const char*);
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
 bool video_file_read_frame(CVideoFile**);
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-bool video_file_write_frame(CVideoFile**);
 
 /**
  * Initialize an CHardwareAccelerator as encoder.

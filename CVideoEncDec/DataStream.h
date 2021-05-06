@@ -5,124 +5,164 @@
 
 typedef bool (*data_stream_get_sw_data_t)(struct CDataStream**);
 
+/**
+ * The main structure in the presented api.
+ * 
+ * It is designed to store basic variables for easy interaction with the audio / video stream. 
+ * The structure stores data for encoding / decoding the data stream. Initially, the library 
+ * was intended for real-time video decoding and converting frames to RGB format for further 
+ * display on the screen.
+ */
 typedef struct CDataStream
 {
-
+    /**
+     * Pointer to the hardware accelerator context.
+     */
     CHardwareAccelerator*             hwdecoder;
 
+    /**
+     * 
+     */
     enum AVMediaType        stream_type;
 
+    /**
+     * Source frame size and converted frame size.
+     */
     int32_t                 fwidth, fheight, swidth, sheight;
 
+    /**
+     * Is there a need to update the scaler. 
+     * It is necessary if the data on the output size has been changed during decoding.
+     */
     bool                    vneed_rescaler_update;
+
+    /**
+     * Whether hardware frame decoding is enabled.
+     */
     bool                    allow_hardware_decoding;
 
+    /**
+     * Rational number (pair of numerator and denominator).
+     * Describes a place in a stream.
+     */
     AVRational              time_base;
+
+    /**
+     * The size of the allocated memory block for a frame, taking into account alignment.
+     */
     int32_t                 allocated_block_size;
 
+    /**
+     * Buffer containing the aligned frame data.
+     */
     uint8_t*                block_buffer;
+
     int64_t                 pts;
 
     int32_t                 data_stream_index;
+
+
     AVCodecContext*         av_codec_ctx;
+
+    /**
+     * This structure describes decoded (raw) audio or video data.
+     */
     AVFrame*                av_frame;
+
+    /**
+     * This structure contains rescaled frame data.
+     */
     AVFrame*                sc_frame;
+
     struct SwsContext*      sws_scaler_ctx;
     struct SwrContext*      swr_ctx;
 
+    /**
+     * Contains pointer to rescaler.
+     */
     data_stream_get_sw_data_t data_stream_get_sw_data_ptr;
 
 }CDataStream;
 
 /**
- * Initialize an CHardwareAccelerator as encoder.
+ * Allocate an CDataStream and set its fields to default values.
  *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
+ * @return An CDataStream filled with default values or NULL on failure.
  */
 CDataStream* data_stream_alloc(void);
 
 /**
- * Initialize an CHardwareAccelerator as encoder.
+ * Initializing a CDataStream structure to decode a data stream.
  *
- * @param hwdec_ptr
+ * @param stream_ptr Pointer to pointer to CDataStream structure.
  *
- * @return Returns true if all initialization got well.
+ * @param av_format_ctx Pointer to AVFormatContext codec context.
+ *
+ * @param stream_type Choosing a data stream type.
+ *
+ * @param allow_hardware Allow using gpu for decoding frames.
+ *
+ * @return Returns true if initialization was successful.
  */
-bool data_stream_initialize_decode(CDataStream**, AVFormatContext*, enum AVMediaType, bool);
+bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, enum AVMediaType stream_type, bool allow_hardware);
+
+/**
+ * Sends data to a decoder for further decoding in order to obtain an image.
+ *
+ * @param stream_ptr Pointer to pointer to CDataStream structure.
+ *
+ * @param av_format_ctx Format I/O context.
+ *
+ * @param av_packet This structure stores compressed data.
+ *
+ * @return Returns true if initialization was successful.
+ */
+bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet);
+
+/**
+ * Method to get the number of seconds from the first decoded or encoded frame.
+ *
+ * @param stream_ptr
+ *
+ * @return Returns the time elapsed from the beginning of the stream in seconds.
+ */
+double data_stream_get_pt_seconds(CDataStream** stream_ptr);
 
 /**
  * Initialize an CHardwareAccelerator as encoder.
  *
- * @param hwdec_ptr
+ * @param stream_ptr
  *
  * @return Returns true if all initialization got well.
  */
-bool data_stream_initialize_encode(CDataStream**, enum AVCodecID, AVCodecParameters*);
+void data_stream_set_frame_size(CDataStream** stream_ptr, int32_t nwidth, int32_t nheight);
 
 /**
- * Initialize an CHardwareAccelerator as encoder.
+ * Callback called if an audio sample has been decoded or encoded, and writes it to an aligned buffer: block_buffer.
  *
- * @param hwdec_ptr
+ * @param stream_ptr
  *
  * @return Returns true if all initialization got well.
  */
-bool data_stream_decode(CDataStream**, AVFormatContext*, AVPacket*);
+bool data_stream_get_sw_data_audio(CDataStream** stream_ptr);
 
 /**
- * Initialize an CHardwareAccelerator as encoder.
+ * Callback called if a video frame has been decoded or encoded, and writes it to an aligned buffer: block_buffer.
  *
- * @param hwdec_ptr
+ * @param stream_ptr
  *
  * @return Returns true if all initialization got well.
  */
-bool data_stream_encode(CDataStream**, AVFormatContext*, AVPacket*);
+bool data_stream_get_sw_data_video(CDataStream** stream_ptr);
 
 /**
- * Initialize an CHardwareAccelerator as encoder.
+ * Closes the stream and clears all memory allocated for it.
  *
- * @param hwdec_ptr
+ * @param stream_ptr
  *
- * @return Returns true if all initialization got well.
+ * @return Returns true.
  */
-double data_stream_get_pt_seconds(CDataStream**);
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-void data_stream_set_frame_size(CDataStream**, int32_t, int32_t);
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-bool data_stream_get_sw_data_audio(CDataStream**);
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-bool data_stream_get_sw_data_video(CDataStream**);
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-bool data_stream_close(CDataStream**);
+bool data_stream_close(CDataStream** stream_ptr);
 
 
 #endif

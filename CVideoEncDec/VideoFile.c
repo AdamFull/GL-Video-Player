@@ -1,6 +1,8 @@
 #include "VideoFile.h"
 #include "helpers.h"
 
+//TODO: add threaded decoding
+
 CVideoFile* video_file_alloc()
 {
     CVideoFile* vfile = NULL;
@@ -59,11 +61,6 @@ bool video_file_open_decode(CVideoFile** vfile_ptr, const char* filepath)
     return true;
 }
 
-bool video_file_open_encode(CVideoFile** vfile_ptr, const char* filepath)
-{
-
-}
-
 bool video_file_read_frame(CVideoFile** vfile_ptr)
 {
     int response;
@@ -104,11 +101,6 @@ bool video_file_read_frame(CVideoFile** vfile_ptr)
     }
 
     return true;
-} 
-
-bool video_file_write_frame(CVideoFile** vfile_ptr)
-{
-
 }
 
 bool video_file_allow_hwdecoding_video(CVideoFile** vfile_ptr)
