@@ -2,7 +2,7 @@
 #define GSHADER
 
 #include <glad/glad.h>
-#include <glm/glm.hpp>
+#include "stdio.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -36,11 +36,8 @@ void shader_set_bool(GShader** shader, const char* name, bool value);
 void shader_set_int(GShader** shader, const char* name, int value);
 void shader_set_float(GShader** shader, const char* name, float value);
 void shader_set_vector2f(GShader** shader, const char* name, float x, float y);
-void shader_set_vector2f(GShader** shader, const char* name, const glm::vec2 &value);
 void shader_set_vector3f(GShader** shader, const char* name, float x, float y, float z);
-void shader_set_vector3f(GShader** shader, const char* name, const glm::vec3 &value);
 void shader_set_vector4f(GShader** shader, const char* name, float x, float y, float z, float w);
-void shader_set_vector4f(GShader** shader, const char* name, const glm::vec4 &value);
-void shader_set_matrix4(GShader** shader, const char* name, const glm::mat4 &matrix);
+void shader_set_matrix4(GShader** shader, const char* name, const float* matrix);
 
 #endif

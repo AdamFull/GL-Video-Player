@@ -1,4 +1,6 @@
 #include "GShader.h"
+#include "stdlib.h"
+#include "string.h"
 
 GShader* shader_alloc()
 {
@@ -7,8 +9,6 @@ GShader* shader_alloc()
 
     shader->program_id = glCreateProgram();
     shader->shaders_loaded = 0;
-    shader->program_name = {0};
-    shader->shaders = {0};
 
     return shader;
 }
@@ -64,7 +64,7 @@ bool shader_compile(GShader** shader, int32_t shader_type)
 void shader_load_and_compile(GShader** shader, const char* dpath, int32_t shader_type)
 {
     shader_load(shader, dpath);
-    shader_shader_compile(shader, shader_type);
+    shader_link_program(shader, shader_type);
 }
 
 bool shader_link_program(GShader** shader)
@@ -77,7 +77,7 @@ bool shader_link_program(GShader** shader)
     glGetProgramiv(gshader->program_id, GL_LINK_STATUS, &result);
     if (!result)
     {
-        glGetProgramInfoLog(programm_ID, 512, NULL, infoLog);
+        glGetProgramInfoLog(gshader->program_id, 512, NULL, infoLog);
         printf("ERROR::SHADER::PROGRAM::LINKING_FAILED: %s\n", infoLog);
         return false;
     }
@@ -118,19 +118,9 @@ void shader_set_vector2f(GShader** shader, const char* name, float x, float y)
     glUniform2f(glGetUniformLocation((*shader)->program_id, name), x, y);
 }
 
-void shader_set_vector2f(GShader** shader, const char* name, const glm::vec2 &value)
-{
-    glUniform2f(glGetUniformLocation((*shader)->program_id, name), value.x, value.y);
-}
-
 void shader_set_vector3f(GShader** shader, const char* name, float x, float y, float z)
 {
     glUniform3f(glGetUniformLocation((*shader)->program_id, name), x, y, z);
-}
-
-void shader_set_vector3f(GShader** shader, const char* name, const glm::vec3 &value)
-{
-    glUniform3f(glGetUniformLocation((*shader)->program_id, name), value.x, value.y, value.z);
 }
 
 void shader_set_vector4f(GShader** shader, const char* name, float x, float y, float z, float w)
@@ -138,12 +128,7 @@ void shader_set_vector4f(GShader** shader, const char* name, float x, float y, f
     glUniform4f(glGetUniformLocation((*shader)->program_id, name), x, y, z, w);
 }
 
-void shader_set_vector4f(GShader** shader, const char* name, const glm::vec4 &value)
+void shader_set_matrix4(GShader** shader, const char* name, const float* matrix)
 {
-    glUniform4f(glGetUniformLocation((*shader)->program_id, name), value.x, value.y, value.z, value.w);
-}
-
-void shader_set_matrix4(GShader** shader, const char* name, const glm::mat4 &matrix)
-{
-    glUniformMatrix4fv(glGetUniformLocation((*shader)->program_id, name), 1, false, glm::value_ptr(matrix));
+    glUniformMatrix4fv(glGetUniformLocation((*shader)->program_id, name), 1, false, matrix);
 }
