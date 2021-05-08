@@ -70,7 +70,7 @@ bool video_file_read_frame(CVideoFile** vfile_ptr)
     {
         if (vfile->av_packet->stream_index == vfile->vstream->data_stream_index)
         {
-            if(!data_stream_decode(&vfile->vstream, vfile->av_format_ctx, vfile->av_packet))
+            if(data_stream_decode(&vfile->vstream, vfile->av_format_ctx, vfile->av_packet) < 0)
             {
                 av_packet_unref(vfile->av_packet);
                 continue;
@@ -78,7 +78,8 @@ bool video_file_read_frame(CVideoFile** vfile_ptr)
         }
         else if(vfile->av_packet->stream_index == vfile->astream->data_stream_index)
         {
-            if(!data_stream_decode(&vfile->astream, vfile->av_format_ctx, vfile->av_packet))
+            continue;
+            if(data_stream_decode(&vfile->astream, vfile->av_format_ctx, vfile->av_packet) < 0)
             {
                 av_packet_unref(vfile->av_packet);
                 continue;

@@ -17,8 +17,11 @@ CDataStream* data_stream_alloc()
     dstream->pts = 0;
     dstream->data_stream_index = -1;
     dstream->av_codec_ctx = NULL;
+    dstream->av_output_pix_fmt = AV_PIX_FMT_RGB0;
+    dstream->av_output_flags = SWS_BICUBLIN;
     dstream->av_frame = NULL;
     dstream->sc_frame = NULL;
+    dstream->av_first_pkt = NULL;
     dstream->sws_scaler_ctx = NULL;
     dstream->swr_ctx = NULL;
     //dstream-data_stream_get_sw_data_ptr = NULL;
@@ -98,7 +101,7 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
 
 }
 
-bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet)
+int data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet)
 {
     int response;
     CDataStream* stream = *stream_ptr;
@@ -110,37 +113,59 @@ bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx
         return false;
     }
 
-    realloc_frame(&stream->av_frame);
-
-    response = avcodec_receive_frame(stream->av_codec_ctx, stream->av_frame);
-    if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+    while(true)
     {
-        av_frame_free(&stream->av_frame);
-        return false;
-    }
-    else if (response < 0)
-    {
-        print_error(response);
-        return false;
-    }
-
-    if(hw_is_coder_ready(&stream->hwdecoder) && stream->allow_hardware_decoding)
-    {
-        if(!hw_decode(&stream->hwdecoder, av_packet, &stream->av_frame))
+        if (!(stream->av_frame = av_frame_alloc()) || !(stream->hwdecoder->sw_frame = av_frame_alloc())) 
         {
-            printf("Failed while decoding frame on gpu.\n");
+            fprintf(stderr, "Can not alloc frames\n");
+            response = AVERROR(ENOMEM);
+            print_error(response);
+            goto fail;
         }
+
+        response = avcodec_receive_frame(stream->av_codec_ctx, stream->av_frame);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+        {
+            av_frame_free(&stream->av_frame);
+            av_frame_free(&stream->hwdecoder->sw_frame);
+            print_error(response);
+            return 0;
+        }
+        else if (response < 0)
+        {
+            fprintf(stderr, "Error while decoding\n");
+            print_error(response);
+            goto fail;
+        }
+
+        if (hw_is_coder_ready(&stream->hwdecoder) && stream->allow_hardware_decoding)
+        {
+            if (!hw_decode(&stream->hwdecoder, av_packet, &stream->av_frame))
+            {
+                printf("Failed while decoding frame on gpu.\n");
+                goto fail;
+            }
+        }
+
+        stream->pts = stream->av_frame->pts;
+
+        if(!stream->data_stream_get_sw_data_ptr(stream_ptr))
+        {
+            printf("Failed while scaling frame.\n");
+            return 0;
+        }
+
+        fail:
+            av_frame_free(&stream->av_frame);
+            av_frame_free(&stream->hwdecoder->sw_frame);
+            if (response < 0)
+            {
+                print_error(response);
+                return response;
+            }
     }
 
-    stream->pts = stream->av_frame->pts;
-
-    if(!stream->data_stream_get_sw_data_ptr(stream_ptr))
-    {
-        printf("Failed while scaling frame.\n");
-        return false;
-    }
-
-    return true;
+    return 0;
 }
 
 bool data_stream_get_sw_data_audio(CDataStream** stream_ptr)
@@ -193,13 +218,13 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr)
         //Send here frame params
         //BEST QUALITY/PERFOMANCE: SWS_BICUBLIN, SWS_AREA
         stream->sws_scaler_ctx = sws_getContext(stream->fwidth, stream->fheight, source_pix_fmt,
-                                                stream->swidth, stream->sheight, AV_PIX_FMT_RGB0,
-                                                SWS_BICUBLIN, NULL, NULL, NULL);
+                                                stream->swidth, stream->sheight, stream->av_output_pix_fmt,
+                                                stream->av_output_flags, NULL, NULL, NULL);
 
         if (stream->vneed_rescaler_update && stream->block_buffer)
             av_free(stream->block_buffer);
 
-        stream->allocated_block_size = avpicture_get_size(AV_PIX_FMT_RGB0, stream->swidth, stream->sheight);
+        stream->allocated_block_size = avpicture_get_size(stream->av_output_pix_fmt, stream->swidth, stream->sheight);
         stream->block_buffer = (uint8_t *)av_malloc((stream->allocated_block_size) * sizeof(uint8_t));
         stream->vneed_rescaler_update = false;
     }
@@ -210,7 +235,7 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr)
         return false;
     }
 
-    avpicture_fill((AVPicture *)stream->sc_frame, stream->block_buffer, AV_PIX_FMT_RGB0, stream->swidth, stream->sheight);
+    avpicture_fill((AVPicture *)stream->sc_frame, stream->block_buffer, stream->av_output_pix_fmt, stream->swidth, stream->sheight);
     sws_scale(stream->sws_scaler_ctx, stream->av_frame->data, stream->av_frame->linesize, 0, stream->fheight, stream->sc_frame->data, stream->sc_frame->linesize);
     return true;
 }

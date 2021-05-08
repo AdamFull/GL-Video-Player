@@ -26,6 +26,7 @@ CHardwareAccelerator* hw_alloc()
 
     hwdec->sw_frame = NULL;
     hwdec->hw_device_ctx = NULL;
+    hwdec->extradata = NULL;
     hwdec->b_is_initialized = false;
 
     return hwdec;
@@ -72,7 +73,6 @@ bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, 
 
     av_opt_set((*av_codec_ctx)->priv_data, "preset", "fast", 0);
 
-    (*av_codec_ctx)->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     (*av_codec_ctx)->get_format  = get_hw_format;
 
     //Initialize hardware context
@@ -84,6 +84,13 @@ bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, 
     }
 
     (*av_codec_ctx)->hw_device_ctx = av_buffer_ref(hwdec->hw_device_ctx);
+
+    /*AVBitStreamFilterContext* av_bit_filter_ctx = av_bitstream_filter_init("h264_mp4toannexb");
+    av_bitstream_filter_filter(av_bit_filter_ctx, *av_codec_ctx, NULL, &hwdec->extradata, &hwdec->extradata_size, NULL, 0, 0);
+    av_bitstream_filter_close(av_bit_filter_ctx);
+
+    (*av_codec_ctx)->extradata = (uint8_t*)av_malloc(hwdec->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);*/
+
 
     if (avcodec_open2(*av_codec_ctx, av_codec, NULL) < 0)
     {
@@ -112,33 +119,17 @@ bool hw_decode(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet, AVFrame** 
     int ret = 0;
     CHardwareAccelerator* hwdec = *hwdec_ptr;
 
-    realloc_frame(&hwdec->sw_frame);
-
     if ((*av_frame)->format == hw_pix_fmt)
     {
         if ((ret = av_hwframe_transfer_data(hwdec->sw_frame, *av_frame, 0)) < 0)
         {
             fprintf(stderr, "Error transferring the data to system memory\n");
-            av_frame_free(&hwdec->sw_frame);
             return false;
         }
         
-        hwdec->sw_frame->pict_type = (*av_frame)->pict_type;
-        hwdec->sw_frame->pts = (*av_frame)->pts;
-        hwdec->sw_frame->pkt_pts = (*av_frame)->pkt_pts;
-        hwdec->sw_frame->pkt_dts = (*av_frame)->pkt_dts;
-        hwdec->sw_frame->pkt_pos = (*av_frame)->pkt_pos;
-        hwdec->sw_frame->pkt_duration = (*av_frame)->pkt_duration;
-        hwdec->sw_frame->pkt_size = (*av_frame)->pkt_size;
-        hwdec->sw_frame->pkt_size = (*av_frame)->pkt_size;
-        hwdec->sw_frame->color_range = (*av_frame)->color_range;
-        hwdec->sw_frame->color_primaries = (*av_frame)->color_primaries;
-        hwdec->sw_frame->color_trc = (*av_frame)->color_trc;
-        hwdec->sw_frame->colorspace = (*av_frame)->colorspace;
-        hwdec->sw_frame->chroma_location = (*av_frame)->chroma_location;
-        hwdec->sw_frame->best_effort_timestamp = (*av_frame)->best_effort_timestamp;
-        av_frame_ref(*av_frame, hwdec->sw_frame);
-        av_frame_unref(hwdec->sw_frame);
+        memcpy((*av_frame)->data, hwdec->sw_frame->data, sizeof(hwdec->sw_frame->data));
+        memcpy((*av_frame)->linesize, hwdec->sw_frame->linesize, sizeof(hwdec->sw_frame->linesize));
+        (*av_frame)->format = hwdec->sw_frame->format;
         return true;
     }
     return false;

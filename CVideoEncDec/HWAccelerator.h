@@ -16,6 +16,8 @@ typedef struct CHardwareAccelerator
 {
     AVFrame*            sw_frame;
     AVBufferRef*        hw_device_ctx;
+    uint8_t* extradata;
+    int32_t extradata_size;
     bool                b_is_initialized;
 } CHardwareAccelerator;
 

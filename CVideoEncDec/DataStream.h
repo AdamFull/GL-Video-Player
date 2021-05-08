@@ -61,8 +61,12 @@ typedef struct CDataStream
 
     int32_t                 data_stream_index;
 
+    AVPacket*               av_first_pkt;
 
     AVCodecContext*         av_codec_ctx;
+
+    enum AVPixelFormat      av_output_pix_fmt;
+    int                     av_output_flags;
 
     /**
      * This structure describes decoded (raw) audio or video data.
@@ -117,7 +121,7 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
  *
  * @return Returns true if initialization was successful.
  */
-bool data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet);
+int data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet);
 
 /**
  * Method to get the number of seconds from the first decoded or encoded frame.

@@ -5,7 +5,7 @@
 #include <libavcodec/avcodec.h>
 
 #if defined(_WIN32)
-    #define HW_DECODER_NAME "dxva2"
+    #define HW_DECODER_NAME "d3d11va"
 #elif defined(__linux__)
     #define HW_DECODER_NAME "vdpau"
 #elif defined(__APPLE__)

@@ -18,9 +18,10 @@ int main()
     CVideoFile* vfile;
     vfile = video_file_alloc();
     video_file_allow_hwdecoding_video(&vfile);
+    //video_file_allow_hwdecoding_audio(&vfile);
     
     #ifdef _WIN32
-    video_file_open_decode(&vfile, "../../resources/samples/videoplayback1.mp4");
+    video_file_open_decode(&vfile, "../../resources/samples/videoplayback.mkv");
     #else
     video_file_open_decode(&vfile, "../resources/samples/videoplayback3.mp4");
     #endif
@@ -29,7 +30,6 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Video Player");
     window.setVerticalSyncEnabled(true);
-    //vstream->set_rescale_size(sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height);
 
     sf::Font font;
     #ifdef _WIN32
