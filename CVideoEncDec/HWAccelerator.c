@@ -26,18 +26,16 @@ CHardwareAccelerator* hw_alloc()
 
     hwdec->sw_frame = NULL;
     hwdec->hw_device_ctx = NULL;
-    hwdec->extradata = NULL;
-    hwdec->b_is_initialized = false;
 
     return hwdec;
 }
 
-bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, AVCodecContext** av_codec_ctx, AVCodecParameters* av_codec_params)
+bool hw_select_device_manuality(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, const char* device_name)
 {
     CHardwareAccelerator* hwdec = *hwdec_ptr;
 
     //vaapi|vdpau|cuvid|dxva2|d3d11va|qvs|videotoolbox|drm|opencl|mediacodec|vulkan
-    enum AVHWDeviceType devType = av_hwdevice_find_type_by_name(HW_DECODER_NAME);
+    enum AVHWDeviceType devType = av_hwdevice_find_type_by_name(device_name);
 
     for (int i = 0;; i++)
     {
@@ -56,49 +54,44 @@ bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, 
         }
     }
 
+    hwdec->hw_device_type = devType;
     hwdec->hw_device_ctx = av_hwdevice_ctx_alloc(devType);
+    return true;
+}
 
-    *av_codec_ctx = avcodec_alloc_context3(av_codec);
-    if (!av_codec_ctx)
+bool hw_select_device_automatically(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec)
+{
+    CHardwareAccelerator* hwdec = *hwdec_ptr;
+
+    const AVCodecHWConfig *config = avcodec_get_hw_config(av_codec, 0);
+    if(config && config->methods && AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
     {
-        printf("Couldn't create AVCodecContext\n");
-        return false;
+        hw_pix_fmt = config->pix_fmt;
+        hwdec->hw_device_type = config->device_type;
+        hwdec->hw_device_ctx = av_hwdevice_ctx_alloc(config->device_type);
+        return true;
     }
 
-    if (avcodec_parameters_to_context(*av_codec_ctx, av_codec_params) < 0)
-    {
-        printf("Couldn't initialize AVCodecContext\n");
-        return false;
-    }
+    fprintf(stderr, "Cannot automatically detect hardware device for %s codec.\n", av_codec->name);
+    return false;
+}
 
-    av_opt_set((*av_codec_ctx)->priv_data, "preset", "fast", 0);
+bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodecContext** av_codec_ctx)
+{
+    CHardwareAccelerator* hwdec = *hwdec_ptr;
+    //av_opt_set((*av_codec_ctx)->priv_data, "preset", "fast", 0);
 
     (*av_codec_ctx)->get_format  = get_hw_format;
 
     //Initialize hardware context
     int err = 0;
-    if ((err = av_hwdevice_ctx_create(&hwdec->hw_device_ctx, devType, NULL, NULL, 0)) < 0)
+    if ((err = av_hwdevice_ctx_create(&hwdec->hw_device_ctx, hwdec->hw_device_type, NULL, NULL, 0)) < 0)
     {
         fprintf(stderr, "Failed to create specified HW device.\n");
         return false;
     }
 
     (*av_codec_ctx)->hw_device_ctx = av_buffer_ref(hwdec->hw_device_ctx);
-
-    /*AVBitStreamFilterContext* av_bit_filter_ctx = av_bitstream_filter_init("h264_mp4toannexb");
-    av_bitstream_filter_filter(av_bit_filter_ctx, *av_codec_ctx, NULL, &hwdec->extradata, &hwdec->extradata_size, NULL, 0, 0);
-    av_bitstream_filter_close(av_bit_filter_ctx);
-
-    (*av_codec_ctx)->extradata = (uint8_t*)av_malloc(hwdec->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);*/
-
-
-    if (avcodec_open2(*av_codec_ctx, av_codec, NULL) < 0)
-    {
-        printf("Couldn't open codec\n");
-        return false;
-    }
-
-    hwdec->b_is_initialized = true;
 
     return true;
 }
@@ -108,13 +101,7 @@ bool hw_initialize_encoder(CHardwareAccelerator** hwdec_ptr, AVCodec* av_codec, 
 
 }
 
-bool hw_is_coder_ready(CHardwareAccelerator** hwdec_ptr)
-{
-    CHardwareAccelerator* hwdec = *hwdec_ptr;
-    return hwdec->b_is_initialized;
-}
-
-bool hw_decode(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
+bool hw_get_decoded_frame(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet, AVFrame** av_frame)
 {
     int ret = 0;
     CHardwareAccelerator* hwdec = *hwdec_ptr;

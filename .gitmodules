@@ -1,3 +1,6 @@
-[submodule "VideoRender/freetype"]
-	path = VideoRender/freetype
+[submodule "CRenderEngine/cglm"]
+	path = CRenderEngine/cglm
+	url = https://github.com/recp/cglm.git
+[submodule "CRenderEngine/freetype"]
+	path = CRenderEngine/freetype
 	url = https://github.com/freetype/freetype.git

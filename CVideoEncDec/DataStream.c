@@ -1,6 +1,7 @@
 #include "DataStream.h"
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include <libavutil/imgutils.h>
 #include "helpers.h"
 
 CDataStream* data_stream_alloc()
@@ -9,6 +10,8 @@ CDataStream* data_stream_alloc()
     dstream = (CDataStream*)malloc(sizeof(CDataStream));
     dstream->hwdecoder = hw_alloc();
 
+    dstream->manuality_device_name = NULL;
+    dstream->is_hardware_avaliable = false;
     dstream->stream_type = 0;
     dstream->vneed_rescaler_update = 0;
     dstream->allow_hardware_decoding = 0;
@@ -24,7 +27,6 @@ CDataStream* data_stream_alloc()
     dstream->av_first_pkt = NULL;
     dstream->sws_scaler_ctx = NULL;
     dstream->swr_ctx = NULL;
-    //dstream-data_stream_get_sw_data_ptr = NULL;
 
     return dstream;
 }
@@ -60,30 +62,34 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
     }
 
     if(allow_hardware)
-        hw_result = hw_initialize_decoder(&stream->hwdecoder, av_codec, &stream->av_codec_ctx, av_codec_params);
-
-    if(!hw_result)
     {
-            // Set up a codec context for the decoder
-        stream->av_codec_ctx = avcodec_alloc_context3(av_codec);
-        if (!stream->av_codec_ctx)
-        {
-            printf("Couldn't create AVCodecContext\n");
-            return false;
-        }
-        
+        if(stream->manuality_device_name)
+            hw_result = hw_select_device_manuality(&stream->hwdecoder, av_codec, stream->manuality_device_name);
+        else
+            hw_result = hw_select_device_automatically(&stream->hwdecoder, av_codec);
+    }
 
-        if (avcodec_parameters_to_context(stream->av_codec_ctx, av_codec_params) < 0)
-        {
-            printf("Couldn't initialize AVCodecContext\n");
-            return false;
-        }
+    // Set up a codec context for the decoder
+    stream->av_codec_ctx = avcodec_alloc_context3(av_codec);
+    if (!stream->av_codec_ctx)
+    {
+        printf("Couldn't create AVCodecContext\n");
+        return false;
+    }
 
-        if (avcodec_open2(stream->av_codec_ctx, av_codec, NULL) < 0)
-        {
-            printf("Couldn't open codec\n");
-            return false;
-        }
+    if (avcodec_parameters_to_context(stream->av_codec_ctx, av_codec_params) < 0)
+    {
+        printf("Couldn't initialize AVCodecContext\n");
+        return false;
+    }
+
+    if(hw_result)
+        stream->is_hardware_avaliable = hw_initialize_decoder(&stream->hwdecoder, &stream->av_codec_ctx);
+
+    if (avcodec_open2(stream->av_codec_ctx, av_codec, NULL) < 0)
+    {
+        printf("Couldn't open codec\n");
+        return false;
     }
 
     if (!(stream->sc_frame = av_frame_alloc()))
@@ -138,9 +144,9 @@ int data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx,
             goto fail;
         }
 
-        if (hw_is_coder_ready(&stream->hwdecoder) && stream->allow_hardware_decoding)
+        if (stream->is_hardware_avaliable && stream->allow_hardware_decoding)
         {
-            if (!hw_decode(&stream->hwdecoder, av_packet, &stream->av_frame))
+            if (!hw_get_decoded_frame(&stream->hwdecoder, av_packet, &stream->av_frame))
             {
                 printf("Failed while decoding frame on gpu.\n");
                 goto fail;
@@ -224,7 +230,7 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr)
         if (stream->vneed_rescaler_update && stream->block_buffer)
             av_free(stream->block_buffer);
 
-        stream->allocated_block_size = avpicture_get_size(stream->av_output_pix_fmt, stream->swidth, stream->sheight);
+        stream->allocated_block_size = av_image_get_buffer_size(stream->av_output_pix_fmt, stream->swidth, stream->sheight, 1);
         stream->block_buffer = (uint8_t *)av_malloc((stream->allocated_block_size) * sizeof(uint8_t));
         stream->vneed_rescaler_update = false;
     }
@@ -235,7 +241,7 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr)
         return false;
     }
 
-    avpicture_fill((AVPicture *)stream->sc_frame, stream->block_buffer, stream->av_output_pix_fmt, stream->swidth, stream->sheight);
+    av_image_fill_arrays(stream->sc_frame->data, stream->sc_frame->linesize, stream->block_buffer, stream->av_output_pix_fmt, stream->swidth, stream->sheight, 1);
     sws_scale(stream->sws_scaler_ctx, stream->av_frame->data, stream->av_frame->linesize, 0, stream->fheight, stream->sc_frame->data, stream->sc_frame->linesize);
     return true;
 }
@@ -246,6 +252,14 @@ double data_stream_get_pt_seconds(CDataStream** stream_ptr)
     AVRational time_base = (*stream_ptr)->time_base;
 
     return pts * (double)time_base.num / (double)time_base.den;
+}
+
+void data_stream_set_hw_device_manuality(CDataStream** stream_ptr, const char* device_name)
+{
+    CDataStream* stream = *stream_ptr;
+    size_t str_size = strlen(device_name) + 1;
+    stream->manuality_device_name = (char*)malloc(sizeof(char) * str_size);
+    strcpy_s(stream->manuality_device_name, str_size, device_name);
 }
 
 void data_stream_set_frame_size(CDataStream** stream_ptr, int32_t nwidth, int32_t nheight)
@@ -260,14 +274,19 @@ void data_stream_set_frame_size(CDataStream** stream_ptr, int32_t nwidth, int32_
     }
 }
 
-bool data_stream_close(CDataStream** stream_ptr)
+void data_stream_close(CDataStream** stream_ptr)
 {
-    hw_close(&(*stream_ptr)->hwdecoder);
-    av_free((*stream_ptr)->block_buffer);
-    avcodec_free_context(&(*stream_ptr)->av_codec_ctx);
-    av_frame_free(&(*stream_ptr)->av_frame);
-    av_frame_free(&(*stream_ptr)->sc_frame);
-    sws_freeContext((*stream_ptr)->sws_scaler_ctx);
-    swr_free(&(*stream_ptr)->swr_ctx);
-    free(*stream_ptr);
+    CDataStream* stream = *stream_ptr;
+
+    if(stream->manuality_device_name)
+        free((void*)stream->manuality_device_name);
+
+    hw_close(&stream->hwdecoder);
+    av_free(stream->block_buffer);
+    avcodec_free_context(&stream->av_codec_ctx);
+    av_frame_free(&stream->av_frame);
+    av_frame_free(&stream->sc_frame);
+    sws_freeContext(stream->sws_scaler_ctx);
+    swr_free(&stream->swr_ctx);
+    free(stream);
 }

@@ -73,24 +73,6 @@ bool video_file_allow_hwdecoding_audio(CVideoFile**);
  *
  * @return Returns true if all initialization got well.
  */
-bool video_find_hwdecoder();
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-bool video_activate_hwdecoder();
-
-/**
- * Initialize an CHardwareAccelerator as encoder.
- *
- * @param hwdec_ptr
- *
- * @return Returns true if all initialization got well.
- */
-bool video_file_close(CVideoFile**);
+void video_file_close(CVideoFile**);
 
 #endif

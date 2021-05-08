@@ -16,7 +16,6 @@ CVideoFile* video_file_alloc()
     vfile->hwdecoding_video = false;
     vfile->hwdecoding_audio = false;
 
-    av_register_all();
     #ifdef VENC_DEBUG
     av_log_set_level(AV_LOG_DEBUG);
     #endif
@@ -118,17 +117,7 @@ bool video_file_allow_hwdecoding_audio(CVideoFile** vfile_ptr)
     return true;
 }
 
-bool video_find_hwdecoder()
-{
-    return false;
-}
-
-bool video_activate_hwdecoder()
-{
-    return false;
-}
-
-bool video_file_close(CVideoFile** vfile_ptr)
+void video_file_close(CVideoFile** vfile_ptr)
 {
     avformat_close_input(&(*vfile_ptr)->av_format_ctx);
     avformat_free_context((*vfile_ptr)->av_format_ctx);

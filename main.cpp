@@ -18,10 +18,11 @@ int main()
     CVideoFile* vfile;
     vfile = video_file_alloc();
     video_file_allow_hwdecoding_video(&vfile);
+    data_stream_set_hw_device_manuality(&vfile->vstream, "d3d11va");
     //video_file_allow_hwdecoding_audio(&vfile);
     
     #ifdef _WIN32
-    video_file_open_decode(&vfile, "../../resources/samples/videoplayback.mkv");
+    video_file_open_decode(&vfile, "../../resources/samples/videoplayback1.mp4");
     #else
     video_file_open_decode(&vfile, "../resources/samples/videoplayback3.mp4");
     #endif

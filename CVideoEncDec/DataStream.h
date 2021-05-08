@@ -18,7 +18,11 @@ typedef struct CDataStream
     /**
      * Pointer to the hardware accelerator context.
      */
-    CHardwareAccelerator*             hwdecoder;
+    CHardwareAccelerator*   hwdecoder;
+
+    char*             manuality_device_name;
+
+    bool                    is_hardware_avaliable;
 
     /**
      * 
@@ -132,6 +136,8 @@ int data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx,
  */
 double data_stream_get_pt_seconds(CDataStream** stream_ptr);
 
+void data_stream_set_hw_device_manuality(CDataStream** stream_ptr, const char* device_name);
+
 /**
  * Initialize an CHardwareAccelerator as encoder.
  *
@@ -166,7 +172,7 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr);
  *
  * @return Returns true.
  */
-bool data_stream_close(CDataStream** stream_ptr);
+void data_stream_close(CDataStream** stream_ptr);
 
 
 #endif
