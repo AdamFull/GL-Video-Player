@@ -4,6 +4,7 @@
 extern "C"
 {
 #include "CVideoEncDec/VideoFile.h"
+#include "CAudioPlayer/CAudioPlayer.h"
 }
 
 #define AVG_BUFFER_SIZE 10
@@ -30,6 +31,7 @@ int main()
     #endif
 
     CDataStream* vstream = vfile->vstream;
+    CDataStream* astream = vfile->astream;
 
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Video Player");
     //window.setVerticalSyncEnabled(true);
@@ -48,6 +50,9 @@ int main()
     sf::Sound sound;
     sf::Clock clock;
     sf::Clock video_timer;
+
+    CAudioPlayer* aplayer = audio_player_alloc();
+    audio_player_init(&aplayer);
 
     video_timer.restart();
     while(is_file_not_end)
@@ -77,6 +82,9 @@ int main()
 
         texture.create(wind_size.x, wind_size.y);
         texture.update(vstream->block_buffer, wind_size.x, wind_size.y, 0, 0);
+
+        audio_player_set_sample(&aplayer, astream->block_buffer, astream->av_frame->sample_rate, astream->av_frame->channels);
+        audio_player_play(&aplayer);
 
         sprite.setTexture(texture);
         fps_stats += "FPS: " + std::to_string(fps) + "\n";
