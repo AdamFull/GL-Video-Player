@@ -18,19 +18,21 @@ int main()
     CVideoFile* vfile;
     vfile = video_file_alloc();
     video_file_allow_hwdecoding_video(&vfile);
-    data_stream_set_hw_device_manuality(&vfile->vstream, "d3d11va");
+    data_stream_set_hw_device_manuality(&vfile->vstream, "vdpau");
+    data_stream_set_thread_settings(&vfile->vstream, 4, 3);
+    data_stream_set_thread_settings(&vfile->astream, 4, 3);
     //video_file_allow_hwdecoding_audio(&vfile);
     
     #ifdef _WIN32
     video_file_open_decode(&vfile, "../../resources/samples/videoplayback1.mp4");
     #else
-    video_file_open_decode(&vfile, "../resources/samples/videoplayback3.mp4");
+    video_file_open_decode(&vfile, "../resources/samples/videoplayback.mp4");
     #endif
 
     CDataStream* vstream = vfile->vstream;
 
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Video Player");
-    window.setVerticalSyncEnabled(true);
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Video Player");
+    //window.setVerticalSyncEnabled(true);
 
     sf::Font font;
     #ifdef _WIN32
@@ -39,10 +41,11 @@ int main()
     font.loadFromFile("../resources/fonts/OpenSans-Bold.ttf");
     #endif
     sf::Text cur_fps("", font, 16);
-    //cur_fps.setFont(font);
 
     sf::Texture texture;
     sf::Sprite sprite;
+    sf::SoundBuffer sbuffer;
+    sf::Sound sound;
     sf::Clock clock;
     sf::Clock video_timer;
 
@@ -64,7 +67,7 @@ int main()
         }
 
         double pt_in_seconds = data_stream_get_pt_seconds(&vstream);
-        while (pt_in_seconds > video_timer.getElapsedTime().asSeconds());
+        //while (pt_in_seconds > video_timer.getElapsedTime().asSeconds());
 
         sf::Vector2u wind_size = window.getSize();
         data_stream_set_frame_size(&vstream, wind_size.x, wind_size.y);

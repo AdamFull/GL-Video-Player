@@ -77,7 +77,6 @@ bool video_file_read_frame(CVideoFile** vfile_ptr)
         }
         else if(vfile->av_packet->stream_index == vfile->astream->data_stream_index)
         {
-            continue;
             if(data_stream_decode(&vfile->astream, vfile->av_format_ctx, vfile->av_packet) < 0)
             {
                 av_packet_unref(vfile->av_packet);

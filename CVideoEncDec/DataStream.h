@@ -20,9 +20,13 @@ typedef struct CDataStream
      */
     CHardwareAccelerator*   hwdecoder;
 
-    char*             manuality_device_name;
+    char*                   manuality_device_name;
 
     bool                    is_hardware_avaliable;
+
+    int32_t                 thread_count;
+
+    int32_t                 thread_type;
 
     /**
      * 
@@ -137,6 +141,8 @@ int data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx,
 double data_stream_get_pt_seconds(CDataStream** stream_ptr);
 
 void data_stream_set_hw_device_manuality(CDataStream** stream_ptr, const char* device_name);
+
+void data_stream_set_thread_settings(CDataStream** stream_ptr, int32_t thread_count, int32_t thread_type_flags);
 
 /**
  * Initialize an CHardwareAccelerator as encoder.

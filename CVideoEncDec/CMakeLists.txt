@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(VIDEO_ENCODER_DECODER VERSION 0.1.0)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 
 file(GLOB VIDEO_ENCODER_DECODER_FILES *.c *.h)
 

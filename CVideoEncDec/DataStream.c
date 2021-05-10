@@ -2,6 +2,7 @@
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
 #include <libavutil/imgutils.h>
+#include <string.h>
 #include "helpers.h"
 
 CDataStream* data_stream_alloc()
@@ -12,6 +13,8 @@ CDataStream* data_stream_alloc()
 
     dstream->manuality_device_name = NULL;
     dstream->is_hardware_avaliable = false;
+    dstream->thread_count = 1;
+    dstream->thread_type |= FF_THREAD_FRAME | FF_THREAD_SLICE;
     dstream->stream_type = 0;
     dstream->vneed_rescaler_update = 0;
     dstream->allow_hardware_decoding = 0;
@@ -85,6 +88,9 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
 
     if(hw_result)
         stream->is_hardware_avaliable = hw_initialize_decoder(&stream->hwdecoder, &stream->av_codec_ctx);
+    
+    stream->av_codec_ctx->thread_count = stream->thread_count;
+    stream->av_codec_ctx->thread_type |= stream->thread_type;
 
     if (avcodec_open2(stream->av_codec_ctx, av_codec, NULL) < 0)
     {
@@ -178,7 +184,7 @@ bool data_stream_get_sw_data_audio(CDataStream** stream_ptr)
 {
     CDataStream* stream = *stream_ptr;
 
-    av_samples_alloc(&stream->block_buffer, stream->allocated_block_size, stream->av_frame->channels, stream->av_frame->sample_rate, AV_SAMPLE_FMT_FLT, 0);
+    av_samples_alloc(&stream->block_buffer, &stream->allocated_block_size, stream->av_frame->channels, stream->av_frame->sample_rate, AV_SAMPLE_FMT_FLT, 0);
 
     if (!stream->swr_ctx)
     {
@@ -259,7 +265,14 @@ void data_stream_set_hw_device_manuality(CDataStream** stream_ptr, const char* d
     CDataStream* stream = *stream_ptr;
     size_t str_size = strlen(device_name) + 1;
     stream->manuality_device_name = (char*)malloc(sizeof(char) * str_size);
-    strcpy_s(stream->manuality_device_name, str_size, device_name);
+    strncpy(stream->manuality_device_name, device_name, str_size);
+}
+
+void data_stream_set_thread_settings(CDataStream** stream_ptr, int32_t thread_count, int32_t thread_type_flags)
+{
+    CDataStream* stream = *stream_ptr;
+    stream->thread_count = thread_count;
+    stream->thread_type |= thread_type_flags;
 }
 
 void data_stream_set_frame_size(CDataStream** stream_ptr, int32_t nwidth, int32_t nheight)

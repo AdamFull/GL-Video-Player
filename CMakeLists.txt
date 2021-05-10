@@ -17,7 +17,7 @@ if(ANDROID)
 find_library( log-lib log )
 endif()
 
-set(SHARED_LIBRARIES_FOR_OS VIDEO_ENCODER_DECODER CRENDER_ENGINE sfml-graphics sfml-audio)
+set(SHARED_LIBRARIES_FOR_OS VIDEO_ENCODER_DECODER sfml-graphics sfml-audio)
 
 if(ANDROID)
     set(PROJECT_LIBRARIES ${SHARED_LIBRARIES_FOR_OS} ${log-lib})
