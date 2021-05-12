@@ -5,25 +5,53 @@ set(CMAKE_C_STANDARD 11)
 
 file(GLOB VIDEO_ENCODER_DECODER_FILES *.c *.h)
 
-if(WIN32)
-add_library(VIDEO_ENCODER_DECODER STATIC ${VIDEO_ENCODER_DECODER_FILES})
-else()
-add_library(VIDEO_ENCODER_DECODER SHARED ${VIDEO_ENCODER_DECODER_FILES})
+set(FFMPEG_LIB_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg)
+
+if(UNIX AND NOT APPLE)
+    set(SYSTEM_TYPE linux)
+    set(ARCHITECTURE ${CMAKE_HOST_SYSTEM_PROCESSOR})
+elseif(WIN32)
+    set(SYSTEM_TYPE windows)
+    set(ARCHITECTURE ${CMAKE_HOST_SYSTEM_PROCESSOR})
+elseif(ANDROID)
+    set(SYSTEM_TYPE android)
+    message(${CMAKE_HOST_SYSTEM_PROCESSOR})
+    if(${ANDROID_ABI} STREQUAL "arm64-v8a")
+        set(ARCHITECTURE arm64)
+    elseif(${ANDROID_ABI} STREQUAL "armeabi-v7a")
+        set(ARCHITECTURE arm)
+    elseif(${ANDROID_ABI} STREQUAL "x86")
+        set(ARCHITECTURE x86)
+    elseif(${ANDROID_ABI} STREQUAL "x86_64")
+        set(ARCHITECTURE x64)
+    endif()
+elseif(UNIX AND APPLE)
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVENC_DEBUG")
+set(FFMPEG_LIB_PLATFORMSPEC_PATH ${FFMPEG_LIB_PREFIX}/${SYSTEM_TYPE}/${ARCHITECTURE})
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
-    libavdevice
-    libavfilter
-    libavformat
-    libavcodec
-    libswresample
-    libswscale
-    libavutil
-)
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CURRENT_BUILDTYPE debug)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVENC_DEBUG")
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    set(CURRENT_BUILDTYPE release)
+endif()
 
-include_directories(${FFMPEG_INCLUDE_DIRS})
+set(FFMPEG_LIBRARIES 
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libavcodec.so.58 
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libavdevice.so.58 
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libavfilter.so.7 
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libavformat.so.58
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libavutil.so.56
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libpostproc.so.55
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libswresample.so.3
+        ${FFMPEG_LIB_PLATFORMSPEC_PATH}/libswscale.so.5
+    )
 
-target_link_libraries(VIDEO_ENCODER_DECODER PkgConfig::LIBAV)
+message("Configuring " ${CURRENT_BUILDTYPE} " build for system " ${SYSTEM_TYPE}:${ARCHITECTURE})
+
+include_directories(${FFMPEG_LIB_PREFIX}/include)
+
+add_library(VIDEO_ENCODER_DECODER SHARED ${VIDEO_ENCODER_DECODER_FILES})
+
+target_link_libraries(VIDEO_ENCODER_DECODER ${FFMPEG_LIBRARIES})
