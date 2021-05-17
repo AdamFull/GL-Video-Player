@@ -1,11 +1,46 @@
 #include "helpers.h"
 
+#define assertm(exp, msg) assert(((void)msg, exp))
+
 void print_error(int errcode)
 {
     char serror[64] = {0};
     av_make_error_string(serror, 64, errcode);
     serror[strlen(serror)] = '\n';
-    printf(serror + '\0');
+    fprintf(stderr, serror + '\0');
+}
+
+void ffmpeg_call_i(int result)
+{
+    char serror[64] = {0};
+    av_make_error_string(serror, 64, result);
+    serror[strlen(serror)] = '\n';
+    serror[strlen(serror)] = '\0';
+
+    assertm(result >= 0, serror);
+}
+
+void ffmpeg_call_v(void* result_ptr)
+{
+    assertm(result_ptr, "Pointer is null");
+}
+
+void ffmpeg_call_im(int result, const char* error_msg)
+{
+    char serror[64] = {0};
+    char message[256] = {0};
+    av_make_error_string(serror, 64, result);
+    serror[strlen(serror)] = '\n';
+    serror[strlen(serror)] = '\0';
+    size_t outsize = strlen(error_msg) + strlen(serror);
+    
+    sprintf_s(message, outsize, "Error: %s. %s", serror, error_msg);
+    assertm(result >= 0, message);
+}
+
+void ffmpeg_call_vm(void* result_ptr, const char* error_msg)
+{
+    assertm(result_ptr, error_msg);
 }
 
 bool realloc_frame(AVFrame** av_frame)

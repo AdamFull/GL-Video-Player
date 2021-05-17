@@ -48,13 +48,7 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
     (*stream_ptr)->allow_hardware_decoding = allow_hardware;
 
     // Find the first valid video stream inside the file
-    stream->data_stream_index = av_find_best_stream(av_format_ctx, stream_type, -1, -1, &av_codec, 0);
-
-    if (stream->data_stream_index < 0)
-    {
-        print_error(stream->data_stream_index);
-        return false;
-    }
+    ffmpeg_call((stream->data_stream_index = av_find_best_stream(av_format_ctx, stream_type, -1, -1, &av_codec, 0)));
 
     av_codec_params = av_format_ctx->streams[stream->data_stream_index]->codecpar;
     stream->time_base = av_format_ctx->streams[stream->data_stream_index]->time_base;
@@ -92,17 +86,11 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
     stream->av_codec_ctx->thread_count = stream->thread_count;
     stream->av_codec_ctx->thread_type |= stream->thread_type;
 
-    if (avcodec_open2(stream->av_codec_ctx, av_codec, NULL) < 0)
-    {
-        printf("Couldn't open codec\n");
-        return false;
-    }
+    ffmpeg_call((avcodec_open2(stream->av_codec_ctx, av_codec, NULL)), "Couldn't open codec\n");
 
-    if (!(stream->sc_frame = av_frame_alloc()))
-    {
-        fprintf(stderr, "Can not alloc frame\n");
-        return false;
-    }
+    ffmpeg_call((void*)(
+        stream->sc_frame = av_frame_alloc()), "Can not alloc frame\n"
+        );
 
     if(stream_type == AVMEDIA_TYPE_AUDIO)
         stream->data_stream_get_sw_data_ptr = data_stream_get_sw_data_audio;
@@ -113,17 +101,46 @@ bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av
 
 }
 
+bool data_stream_initialize_encode(CDataStream** stream_ptr, const char* filename, enum AVCodecID id, enum AVMediaType stream_type, bool allow_hardware)
+{
+    CDataStream* stream = *stream_ptr;
+    AVCodec* av_codec = NULL;
+    int result;
+
+    ffmpeg_call((void*)(
+        av_codec = avcodec_find_encoder(id)), "Codec could not found.\n"
+        );
+    
+    ffmpeg_call((void*)(
+        stream->av_codec_ctx = avcodec_alloc_context3(av_codec)), "Cannot allocate codec context.\n"
+        );
+
+    //Init codec params
+
+    //Init codec params
+
+    if (av_codec->id == AV_CODEC_ID_H264)
+        ffmpeg_call(av_opt_set(stream->av_codec_ctx->priv_data, "preset", "slow", 0));
+
+    ffmpeg_call((result = avcodec_open2(stream->av_codec_ctx, av_codec, NULL)));
+
+    if((result = fopen_s(stream->file_writer, filename, "wb")) < 0)
+    {
+        fprintf(stderr, "Cannot open file writer.\n");
+        return false;
+    }
+
+    return true;
+}
+
 int data_stream_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, AVPacket* av_packet)
 {
     int response;
     CDataStream* stream = *stream_ptr;
 
-    response = avcodec_send_packet(stream->av_codec_ctx, av_packet);
-    if (response < 0)
-    {
-        print_error(response);
-        return false;
-    }
+    ffmpeg_call((
+        response = avcodec_send_packet(stream->av_codec_ctx, av_packet)
+    ));
 
     while(true)
     {
@@ -184,36 +201,34 @@ bool data_stream_get_sw_data_audio(CDataStream** stream_ptr)
 {
     CDataStream* stream = *stream_ptr;
 
-    av_samples_alloc(&stream->block_buffer, &stream->allocated_block_size, stream->av_frame->channels, stream->av_frame->sample_rate, AV_SAMPLE_FMT_FLT, 0);
+    ffmpeg_call(
+        av_samples_alloc(&stream->block_buffer, &stream->allocated_block_size, stream->av_frame->channels, stream->av_frame->sample_rate, AV_SAMPLE_FMT_FLT, 0)
+    );
 
     if (!stream->swr_ctx)
     {
+        ffmpeg_call((void*)(
         stream->swr_ctx = swr_alloc_set_opts(NULL, stream->av_codec_ctx->channel_layout,
                                              AV_SAMPLE_FMT_S16, stream->av_codec_ctx->sample_rate,
                                              stream->av_codec_ctx->channel_layout, stream->av_codec_ctx->sample_fmt,
-                                             stream->av_codec_ctx->sample_rate, 0, NULL);
+                                             stream->av_codec_ctx->sample_rate, 0, NULL)
+        ));
 
-        if (!stream->swr_ctx)
-        {
-            printf("Couldn't allocate swr context\n");
-            return false;
-        }
-
-        if (swr_init(stream->swr_ctx) < 0)
-        {
-            printf("Couldn't initialize swr context\n");
-            return false;
-        }
+        ffmpeg_call_m(
+            swr_init(stream->swr_ctx), 
+            "Couldn't initialize swr context\n"
+            );
     }
 
-    int response = swr_convert(stream->swr_ctx, &stream->block_buffer, stream->av_frame->sample_rate, (const uint8_t **)stream->av_frame->extended_data, stream->av_frame->nb_samples);
-    stream->allocated_block_size = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT) * stream->av_frame->channels * response;
+    int response = 0;
+    ffmpeg_call_m((
+        response = swr_convert(stream->swr_ctx, &stream->block_buffer, stream->av_frame->sample_rate, (const uint8_t **)stream->av_frame->extended_data, stream->av_frame->nb_samples)),
+        "Couldn't convert audio frame.\n"
+    );
+    ffmpeg_call((
+        stream->allocated_block_size = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT) * stream->av_frame->channels * response
+    ));
 
-    if (response < 0)
-    {
-        printf("Couldn't convert audio frame.\n");
-        return false;
-    }
     return true;
 }
 
@@ -226,12 +241,14 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr)
         if (stream->vneed_rescaler_update && stream->sws_scaler_ctx)
             sws_freeContext(stream->sws_scaler_ctx);
 
-        auto source_pix_fmt = correct_for_deprecated_pixel_format((enum AVPixelFormat)stream->av_frame->format);
+        enum AVPixelFormat source_pix_fmt = correct_for_deprecated_pixel_format((enum AVPixelFormat)stream->av_frame->format);
         //Send here frame params
         //BEST QUALITY/PERFOMANCE: SWS_BICUBLIN, SWS_AREA
+        ffmpeg_call((void*)(
         stream->sws_scaler_ctx = sws_getContext(stream->fwidth, stream->fheight, source_pix_fmt,
                                                 stream->swidth, stream->sheight, stream->av_output_pix_fmt,
-                                                stream->av_output_flags, NULL, NULL, NULL);
+                                                stream->av_output_flags, NULL, NULL, NULL)
+        ));
 
         if (stream->vneed_rescaler_update && stream->block_buffer)
             av_free(stream->block_buffer);
@@ -248,7 +265,9 @@ bool data_stream_get_sw_data_video(CDataStream** stream_ptr)
     }
 
     av_image_fill_arrays(stream->sc_frame->data, stream->sc_frame->linesize, stream->block_buffer, stream->av_output_pix_fmt, stream->swidth, stream->sheight, 1);
-    sws_scale(stream->sws_scaler_ctx, stream->av_frame->data, stream->av_frame->linesize, 0, stream->fheight, stream->sc_frame->data, stream->sc_frame->linesize);
+    ffmpeg_call(
+        sws_scale(stream->sws_scaler_ctx, stream->av_frame->data, stream->av_frame->linesize, 0, stream->fheight, stream->sc_frame->data, stream->sc_frame->linesize)
+    );
     return true;
 }
 

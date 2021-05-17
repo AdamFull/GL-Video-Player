@@ -94,6 +94,8 @@ typedef struct CDataStream
      */
     data_stream_get_sw_data_t data_stream_get_sw_data_ptr;
 
+    FILE* file_writer;
+
 }CDataStream;
 
 /**
@@ -117,6 +119,21 @@ CDataStream* data_stream_alloc(void);
  * @return Returns true if initialization was successful.
  */
 bool data_stream_initialize_decode(CDataStream** stream_ptr, AVFormatContext* av_format_ctx, enum AVMediaType stream_type, bool allow_hardware);
+
+/**
+ * Initializing a CDataStream structure to encode a data stream.
+ *
+ * @param stream_ptr Pointer to pointer to CDataStream structure.
+ *
+ * @param filename Path to output file.
+ *
+ * @param stream_type Choosing a data stream type.
+ *
+ * @param allow_hardware Allow using gpu for decoding frames.
+ *
+ * @return Returns true if initialization was successful.
+ */
+bool data_stream_initialize_encode(CDataStream** stream_ptr, const char* filename, enum AVCodecID id, enum AVMediaType stream_type, bool allow_hardware);
 
 /**
  * Sends data to a decoder for further decoding in order to obtain an image.

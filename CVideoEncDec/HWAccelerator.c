@@ -55,7 +55,10 @@ bool hw_select_device_manuality(CHardwareAccelerator** hwdec_ptr, AVCodec* av_co
     }
 
     hwdec->hw_device_type = devType;
-    hwdec->hw_device_ctx = av_hwdevice_ctx_alloc(devType);
+    ffmpeg_call((void*)(
+        hwdec->hw_device_ctx = av_hwdevice_ctx_alloc(devType)
+    ));
+    
     return true;
 }
 
@@ -68,7 +71,9 @@ bool hw_select_device_automatically(CHardwareAccelerator** hwdec_ptr, AVCodec* a
     {
         hw_pix_fmt = config->pix_fmt;
         hwdec->hw_device_type = config->device_type;
-        hwdec->hw_device_ctx = av_hwdevice_ctx_alloc(config->device_type);
+        ffmpeg_call((void*)(
+            hwdec->hw_device_ctx = av_hwdevice_ctx_alloc(config->device_type)
+        ));
         return true;
     }
 
@@ -79,19 +84,18 @@ bool hw_select_device_automatically(CHardwareAccelerator** hwdec_ptr, AVCodec* a
 bool hw_initialize_decoder(CHardwareAccelerator** hwdec_ptr, AVCodecContext** av_codec_ctx)
 {
     CHardwareAccelerator* hwdec = *hwdec_ptr;
-    //av_opt_set((*av_codec_ctx)->priv_data, "preset", "fast", 0);
 
     (*av_codec_ctx)->get_format  = get_hw_format;
 
     //Initialize hardware context
-    int err = 0;
-    if ((err = av_hwdevice_ctx_create(&hwdec->hw_device_ctx, hwdec->hw_device_type, NULL, NULL, 0)) < 0)
-    {
-        fprintf(stderr, "Failed to create specified HW device.\n");
-        return false;
-    }
+    ffmpeg_call_m(
+        av_hwdevice_ctx_create(&hwdec->hw_device_ctx, hwdec->hw_device_type, NULL, NULL, 0),
+        "Failed to create specified HW device.\n"
+    );
 
-    (*av_codec_ctx)->hw_device_ctx = av_buffer_ref(hwdec->hw_device_ctx);
+    ffmpeg_call((void*)(
+        (*av_codec_ctx)->hw_device_ctx = av_buffer_ref(hwdec->hw_device_ctx)
+    ));
 
     return true;
 }
@@ -108,11 +112,10 @@ bool hw_get_decoded_frame(CHardwareAccelerator** hwdec_ptr, AVPacket* av_packet,
 
     if ((*av_frame)->format == hw_pix_fmt)
     {
-        if ((ret = av_hwframe_transfer_data(hwdec->sw_frame, *av_frame, 0)) < 0)
-        {
-            fprintf(stderr, "Error transferring the data to system memory\n");
-            return false;
-        }
+        ffmpeg_call_m(
+            av_hwframe_transfer_data(hwdec->sw_frame, *av_frame, 0),
+            "Error transferring the data to system memory\n"
+            );
         
         memcpy((*av_frame)->data, hwdec->sw_frame->data, sizeof(hwdec->sw_frame->data));
         memcpy((*av_frame)->linesize, hwdec->sw_frame->linesize, sizeof(hwdec->sw_frame->linesize));

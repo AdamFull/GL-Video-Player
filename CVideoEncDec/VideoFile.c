@@ -27,18 +27,12 @@ bool video_file_open_decode(CVideoFile** vfile_ptr, const char* filepath)
 {
     CVideoFile* vfile = *vfile_ptr;
 
-    vfile->av_format_ctx = avformat_alloc_context();
-    if (!vfile->av_format_ctx)
-    {
-        printf("Couldn't created AVFormatContext\n");
-        return false;
-    }
+    ffmpeg_call_m((void*)(
+        vfile->av_format_ctx = avformat_alloc_context()), 
+        "Couldn't created AVFormatContext\n"
+        );
 
-    if (avformat_open_input(&vfile->av_format_ctx, filepath, NULL, NULL) != 0)
-    {
-        printf("Couldn't open video file\n");
-        return false;
-    }
+    ffmpeg_call(avformat_open_input(&vfile->av_format_ctx, filepath, NULL, NULL), "Couldn't open video file\n");
 
     if(!data_stream_initialize_decode(&vfile->vstream, vfile->av_format_ctx, AVMEDIA_TYPE_VIDEO, vfile->hwdecoding_video))
     {
@@ -50,12 +44,10 @@ bool video_file_open_decode(CVideoFile** vfile_ptr, const char* filepath)
         printf("Couldn't open audio stream\n");
     }
 
-    vfile->av_packet = av_packet_alloc();
-    if (!vfile->av_packet)
-    {
-        printf("Couldn't allocate AVPacket\n");
-        return false;
-    }
+    ffmpeg_call_m((void*)(
+        vfile->av_packet = av_packet_alloc()), 
+        "Couldn't allocate AVPacket\n"
+        );
 
     return true;
 }

@@ -40,6 +40,26 @@ bool realloc_frame(AVFrame**);
  */
 void print_error(int);
 
+void ffmpeg_call_i(int result);
+
+void ffmpeg_call_v(void* result_ptr);
+
+void ffmpeg_call_im(int result, const char* error_msg);
+
+void ffmpeg_call_vm(void* result_ptr, const char* error_msg);
+
+#define ffmpeg_call(X) \
+_Generic((X), \
+int: ffmpeg_call_i, \
+void*: ffmpeg_call_v \
+)(X)
+
+#define ffmpeg_call_m(X, Y) \
+_Generic((X), \
+int: ffmpeg_call_im, \
+void*: ffmpeg_call_vm \
+)(X, Y)
+
 /**
  * Initialize an CHardwareAccelerator as encoder.
  *
